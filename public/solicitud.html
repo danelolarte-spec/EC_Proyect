@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitud de Contenido — EC Proyect</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="request-body">
+  <div class="request-shell">
+    <header class="request-header">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">
+          <h1>Formulario de Solicitud de Contenido</h1>
+          <p>Envía tu requerimiento al equipo creativo</p>
+        </div>
+      </div>
+    </header>
+
+    <form id="requestForm" class="request-card">
+      <fieldset>
+        <legend>Tipo de solicitud</legend>
+        <div class="row">
+          <label><input type="radio" name="request_type" value="Predeterminada" checked /> Predeterminada</label>
+          <label><input type="radio" name="request_type" value="Nueva" /> Nueva solicitud</label>
+        </div>
+      </fieldset>
+
+      <div id="predeterminadaBlock">
+        <fieldset>
+          <legend>Subtipo</legend>
+          <select id="subtype" name="subtype">
+            <option value="Vacante">Vacante</option>
+            <option value="Foto corporativa">Foto corporativa</option>
+            <option value="Firma corporativa">Firma corporativa</option>
+            <option value="Parrilla de sensibilización">Parrilla de sensibilización</option>
+          </select>
+        </fieldset>
+
+        <div id="subtypeFields"></div>
+      </div>
+
+      <div id="nuevaBlock" style="display:none">
+        <fieldset>
+          <legend>Descripción de la nueva solicitud</legend>
+          <label>Título</label>
+          <input type="text" name="new_title" />
+          <label>Descripción</label>
+          <textarea name="new_description" rows="4"></textarea>
+        </fieldset>
+      </div>
+
+      <fieldset>
+        <legend>Datos del solicitante (obligatorios)</legend>
+        <div class="grid-2">
+          <div>
+            <label>Nombre completo *</label>
+            <input type="text" id="requester_name" required />
+          </div>
+          <div>
+            <label>Cargo *</label>
+            <input type="text" id="requester_position" required />
+          </div>
+          <div>
+            <label>Correo electrónico *</label>
+            <input type="email" id="requester_email" required />
+          </div>
+          <div>
+            <label>Fecha programada</label>
+            <input type="date" id="scheduled_date" />
+          </div>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary full">Enviar solicitud</button>
+      <div id="resultMsg" class="result-msg"></div>
+    </form>
+
+    <footer class="request-footer">
+      <a href="/">Volver al inicio</a>
+    </footer>
+  </div>
+
+  <script>
+    const subtypeFields = document.getElementById('subtypeFields');
+    const subtypeSelect = document.getElementById('subtype');
+    const predBlock = document.getElementById('predeterminadaBlock');
+    const nuevaBlock = document.getElementById('nuevaBlock');
+
+    function renderSubtypeFields() {
+      const v = subtypeSelect.value;
+      let html = '';
+      if (v === 'Vacante') {
+        html = `
+          <fieldset><legend>Detalles de la vacante</legend>
+            <label>Nombre de la vacante</label><input type="text" name="vacant_name" />
+            <label>Descripción</label><textarea name="vacant_desc" rows="3"></textarea>
+            <label>Fecha de publicación</label><input type="date" name="vacant_date" />
+          </fieldset>`;
+      } else if (v === 'Foto corporativa') {
+        html = `
+          <fieldset><legend>Foto corporativa</legend>
+            <div class="grid-2">
+              <div><label>Nombre de la persona</label><input type="text" name="photo_person" /></div>
+              <div><label>Cargo</label><input type="text" name="photo_position" /></div>
+              <div><label>Empresa</label><input type="text" name="photo_company" /></div>
+              <div><label>Fecha y hora programada</label><input type="datetime-local" name="photo_datetime" /></div>
+            </div>
+          </fieldset>`;
+      } else if (v === 'Firma corporativa') {
+        html = `
+          <fieldset><legend>Firma corporativa</legend>
+            <div class="grid-2">
+              <div><label>Nombre completo</label><input type="text" name="sign_name" /></div>
+              <div><label>Cargo</label><input type="text" name="sign_position" /></div>
+              <div><label>Correo electrónico</label><input type="email" name="sign_email" /></div>
+              <div><label>Fecha programada</label><input type="date" name="sign_date" /></div>
+            </div>
+          </fieldset>`;
+      } else if (v === 'Parrilla de sensibilización') {
+        html = `
+          <fieldset><legend>Parrilla de sensibilización (mín. 1 publicación diaria)</legend>
+            <label>Nombre de la publicación</label><input type="text" name="grid_name" />
+            <label>Objetivo</label><input type="text" name="grid_objective" />
+            <label>Descripción</label><textarea name="grid_description" rows="3"></textarea>
+            <label>Fecha de inicio</label><input type="date" name="grid_start" />
+            <label>Fecha de fin</label><input type="date" name="grid_end" />
+          </fieldset>`;
+      }
+      subtypeFields.innerHTML = html;
+    }
+    subtypeSelect.addEventListener('change', renderSubtypeFields);
+    renderSubtypeFields();
+
+    document.querySelectorAll('input[name="request_type"]').forEach((r) => {
+      r.addEventListener('change', (e) => {
+        if (e.target.value === 'Predeterminada') {
+          predBlock.style.display = '';
+          nuevaBlock.style.display = 'none';
+        } else {
+          predBlock.style.display = 'none';
+          nuevaBlock.style.display = '';
+        }
+      });
+    });
+
+    document.getElementById('requestForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const request_type = fd.get('request_type');
+      const subtype = request_type === 'Predeterminada' ? subtypeSelect.value : null;
+      const payload = {};
+      for (const [k, v] of fd.entries()) {
+        if (['request_type'].includes(k)) continue;
+        payload[k] = v;
+      }
+      const body = {
+        request_type,
+        subtype,
+        payload,
+        requester_name: document.getElementById('requester_name').value,
+        requester_position: document.getElementById('requester_position').value,
+        requester_email: document.getElementById('requester_email').value,
+        scheduled_date: document.getElementById('scheduled_date').value || null
+      };
+      const msg = document.getElementById('resultMsg');
+      try {
+        const r = await fetch('/api/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Error');
+        msg.className = 'result-msg success';
+        msg.textContent = '✓ Solicitud enviada correctamente. Folio #' + data.id;
+        e.target.reset();
+        renderSubtypeFields();
+      } catch (err) {
+        msg.className = 'result-msg error';
+        msg.textContent = err.message;
+      }
+    });
+  </script>
+</body>
+</html>

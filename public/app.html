@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EC Proyect</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark small"></div>
+        <div>
+          <h2>EC Proyect</h2>
+          <span>Gestión integral</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#dashboard" data-route="dashboard"><span class="nav-ico">▦</span> Dashboard</a>
+        <a href="#projects" data-route="projects"><span class="nav-ico">▤</span> Proyectos</a>
+        <a href="#tasks" data-route="tasks"><span class="nav-ico">✓</span> Tareas</a>
+        <a href="#calendar" data-route="calendar"><span class="nav-ico">▣</span> Cronograma</a>
+        <a href="#kanban" data-route="kanban"><span class="nav-ico">▥</span> Kanban</a>
+        <a href="#creative" data-route="creative"><span class="nav-ico">✦</span> Área Creativa</a>
+        <a href="#creative-tasks" data-route="creative-tasks"><span class="nav-ico">✧</span> Tareas Creativas</a>
+        <a href="#requests" data-route="requests"><span class="nav-ico">▸</span> Solicitudes</a>
+        <a href="#users" data-route="users"><span class="nav-ico">◉</span> Usuarios</a>
+        <a href="#areas" data-route="areas"><span class="nav-ico">◈</span> Áreas</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <div class="avatar" id="userAvatar">A</div>
+          <div>
+            <strong id="userName">Usuario</strong>
+            <small id="userEmail">—</small>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn btn-ghost small">Salir</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="searchbar">
+          <input type="text" id="globalSearch" placeholder="Buscar proyectos, tareas, contenido..." />
+        </div>
+        <div class="topbar-actions">
+          <a href="/solicitud.html" target="_blank" class="btn btn-ghost small">Formulario externo</a>
+        </div>
+      </header>
+
+      <section id="view" class="view"></section>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/users.js"></script>
+  <script src="/js/areas.js"></script>
+  <script src="/js/projects.js"></script>
+  <script src="/js/tasks.js"></script>
+  <script src="/js/calendar.js"></script>
+  <script src="/js/kanban.js"></script>
+  <script src="/js/creative.js"></script>
+  <script src="/js/requests.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

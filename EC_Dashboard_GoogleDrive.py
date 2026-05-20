@@ -24,11 +24,12 @@ Configuracion previa (una sola vez):
 """
 import sys
 import os
+import json
 import smtplib
 import ssl
 from email.message import EmailMessage
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date, time
 
 try:
     from openpyxl import load_workbook
@@ -52,6 +53,9 @@ except ImportError:
 EMPRESA = "EC Transportes"
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 465
+
+# Plantilla del dashboard HTML interactivo (debe estar en la misma carpeta)
+TEMPLATE_FILE = "EC_Transportes_Dashboard.html"
 
 CONFIG_FILE = "config.txt"
 CONFIG_TEMPLATE = """# Configuracion para EC_Dashboard_GoogleDrive.py
@@ -129,14 +133,70 @@ def numv(v):
         return 0.0
 
 
-def compute_kpis(xlsx_path):
+def to_jsonable(value):
+    """Convierte tipos no serializables (datetime/date/time) a string."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, time):
+        return value.strftime("%H:%M")
+    return value
+
+
+def load_rows(xlsx_path):
+    """Lee el .xlsx y devuelve (headers, rows_dict_originales, rows_dict_serializables)."""
     wb = load_workbook(xlsx_path, data_only=True)
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     if len(rows) < 2:
-        return None
+        return [], [], []
     headers = [str(h).strip() if h is not None else "" for h in rows[0]]
-    data = [dict(zip(headers, r)) for r in rows[1:]]
+    data_raw = [dict(zip(headers, r)) for r in rows[1:]]
+    data_json = [{h: to_jsonable(v) for h, v in zip(headers, r)} for r in rows[1:]]
+    return headers, data_raw, data_json
+
+
+def build_interactive_html(rows_json, kpis):
+    """Inserta los datos dentro del template HTML para que abra ya con todo cargado."""
+    script_dir = Path(__file__).resolve().parent
+    template_path = script_dir / TEMPLATE_FILE
+    if not template_path.exists():
+        return None
+    template = template_path.read_text(encoding="utf-8")
+
+    embedded = json.dumps(rows_json, ensure_ascii=False)
+
+    injection = (
+        "<script>\n"
+        "(function(){\n"
+        "  const __EMBEDDED__ = " + embedded + ";\n"
+        "  function autoload(){\n"
+        "    if (typeof compute !== 'function' || typeof renderDashboard !== 'function') {\n"
+        "      setTimeout(autoload, 50); return;\n"
+        "    }\n"
+        "    try {\n"
+        "      G = compute(__EMBEDDED__);\n"
+        "      renderDashboard();\n"
+        "      showScreen('dashboard');\n"
+        "    } catch(e) { console.error('Auto-load error:', e); }\n"
+        "  }\n"
+        "  if (document.readyState === 'complete') autoload();\n"
+        "  else window.addEventListener('load', autoload);\n"
+        "})();\n"
+        "</script>\n"
+    )
+
+    if "</body>" in template:
+        return template.replace("</body>", injection + "</body>")
+    return template + injection
+
+
+def compute_kpis_from_data(data):
+    if not data:
+        return None
 
     # Periodo (mes / anio) a partir de la primera fecha valida
     mes = "-"
@@ -239,7 +299,7 @@ def build_html(k):
 """
 
 
-def send_mail(xlsx_path, kpis):
+def send_mail(kpis, dashboard_html, dashboard_filename):
     msg = EmailMessage()
     msg['Subject'] = f"Dashboard Ejecutivo {EMPRESA} - {kpis['mes']}"
     msg['From'] = GMAIL_USER
@@ -252,17 +312,18 @@ def send_mail(xlsx_path, kpis):
         f"Servicios liquidados: {kpis['total_active']}\n"
         f"Facturacion total: {fmt_cop(kpis['total_factura'])}\n"
         f"Cancelados: {kpis['total_cancelled']} ({fmt_pct(kpis['pct_cancel'])})\n\n"
-        f"Ver el correo en formato HTML para mas detalles. Archivo adjunto."
+        f"Abre el archivo adjunto (.html) en Chrome/Edge/Firefox para ver "
+        f"el dashboard interactivo completo."
     )
     msg.add_alternative(build_html(kpis), subtype='html')
 
-    with open(xlsx_path, 'rb') as f:
-        msg.add_attachment(
-            f.read(),
-            maintype='application',
-            subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            filename=Path(xlsx_path).name,
-        )
+    # Adjuntar el dashboard HTML interactivo
+    msg.add_attachment(
+        dashboard_html.encode('utf-8'),
+        maintype='text',
+        subtype='html',
+        filename=dashboard_filename,
+    )
 
     recipients = DESTINATARIOS + CC
     ctx = ssl.create_default_context()
@@ -334,24 +395,45 @@ def main():
         print("Edita 'config.txt' y agrega al menos un correo en DESTINATARIOS.")
         pause_exit(1)
 
-    # 3) Procesar y enviar
-    print(f"\n[1/3] Leyendo {Path(xlsx_path).name} ...")
+    # 3) Procesar
+    print(f"\n[1/4] Leyendo {Path(xlsx_path).name} ...")
     try:
-        kpis = compute_kpis(xlsx_path)
+        _, data_raw, data_json = load_rows(xlsx_path)
     except Exception as e:
         print(f"ERROR al leer el archivo: {e}")
         pause_exit(1)
 
-    if not kpis:
+    if not data_raw:
         print("ERROR: el archivo esta vacio o no tiene filas de datos.")
         pause_exit(1)
 
-    print(f"[2/3] Periodo: {kpis['mes']} | "
+    kpis = compute_kpis_from_data(data_raw)
+    print(f"[2/4] Periodo: {kpis['mes']} | "
           f"{kpis['total_active']} servicios | {fmt_cop(kpis['total_factura'])}")
 
-    print(f"[3/3] Enviando a: {', '.join(DESTINATARIOS)} ...")
+    # 4) Generar dashboard interactivo
+    print("[3/4] Generando dashboard HTML interactivo ...")
+    dashboard_html = build_interactive_html(data_json, kpis)
+    if dashboard_html is None:
+        print(f"ERROR: no se encontro '{TEMPLATE_FILE}' en la carpeta del script.")
+        print(f"Pon el archivo '{TEMPLATE_FILE}' junto al .py y vuelve a ejecutar.")
+        pause_exit(1)
+
+    safe_mes = kpis['mes'].replace(' ', '_')
+    dashboard_filename = f"Dashboard_ECT_{safe_mes}.html"
+
+    # Guardar tambien una copia local junto al .xlsx
     try:
-        send_mail(xlsx_path, kpis)
+        local_copy = Path(xlsx_path).resolve().parent / dashboard_filename
+        local_copy.write_text(dashboard_html, encoding="utf-8")
+        print(f"        Copia guardada en: {local_copy}")
+    except Exception as e:
+        print(f"        (No se pudo guardar copia local: {e})")
+
+    # 5) Enviar
+    print(f"[4/4] Enviando a: {', '.join(DESTINATARIOS)} ...")
+    try:
+        send_mail(kpis, dashboard_html, dashboard_filename)
     except smtplib.SMTPAuthenticationError:
         print("\nERROR: autenticacion fallida. Verifica:")
         print("  - Tener verificacion en 2 pasos activada en tu cuenta Google.")
@@ -363,6 +445,7 @@ def main():
         pause_exit(1)
 
     print("\nOK: correo enviado correctamente.")
+    print(f"     Dashboard interactivo adjunto como: {dashboard_filename}")
     pause_exit(0)
 
 

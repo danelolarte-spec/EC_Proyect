@@ -33,7 +33,11 @@ from datetime import datetime
 try:
     from openpyxl import load_workbook
 except ImportError:
-    print("Falta openpyxl. Instala con: pip install openpyxl")
+    print("Falta openpyxl. Instala con:  pip install openpyxl")
+    try:
+        input("\nPresiona Enter para cerrar...")
+    except EOFError:
+        pass
     sys.exit(1)
 
 # =============================================================
@@ -217,26 +221,72 @@ def send_mail(xlsx_path, kpis):
         smtp.send_message(msg, from_addr=GMAIL_USER, to_addrs=recipients)
 
 
+def pick_file_dialog():
+    """Abre un dialogo de Windows/Mac/Linux para escoger el .xlsx."""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        path = filedialog.askopenfilename(
+            title="Selecciona el archivo .xlsx del dashboard",
+            filetypes=[("Excel", "*.xlsx *.xls"), ("Todos", "*.*")],
+        )
+        root.destroy()
+        return path
+    except Exception:
+        return None
+
+
+def pause_exit(code=0):
+    """Espera Enter antes de cerrar (para que no se cierre la ventana en Windows)."""
+    try:
+        input("\nPresiona Enter para cerrar...")
+    except EOFError:
+        pass
+    sys.exit(code)
+
+
 def main():
-    if len(sys.argv) < 2:
-        print("Uso: python EC_Dashboard_GoogleDrive.py archivo.xlsx")
-        sys.exit(1)
+    print("=" * 60)
+    print(" EC TRANSPORTES - Envio de Dashboard por correo")
+    print("=" * 60)
 
-    xlsx_path = sys.argv[1]
-    if not Path(xlsx_path).exists():
-        print(f"ERROR: no existe el archivo: {xlsx_path}")
-        sys.exit(1)
+    # 1) Obtener ruta del xlsx (argumento o dialogo)
+    if len(sys.argv) >= 2:
+        xlsx_path = sys.argv[1]
+    else:
+        print("\nNo pasaste un archivo. Abriendo selector...")
+        xlsx_path = pick_file_dialog()
+        if not xlsx_path:
+            xlsx_path = input("Pega aqui la ruta del .xlsx: ").strip().strip('"')
 
+    if not xlsx_path or not Path(xlsx_path).exists():
+        print(f"\nERROR: no existe el archivo: {xlsx_path}")
+        pause_exit(1)
+
+    # 2) Validar credenciales
     if GMAIL_APP_PASSWORD == "xxxx xxxx xxxx xxxx" or GMAIL_USER == "tu_correo@gmail.com":
-        print("ERROR: configura GMAIL_USER y GMAIL_APP_PASSWORD en el script")
-        print("       (o exportalos como variables de entorno).")
-        sys.exit(1)
+        print("\nERROR: faltan credenciales.")
+        print("Abre este archivo .py con el Bloc de notas y edita:")
+        print("   GMAIL_USER         = tu correo de Gmail")
+        print("   GMAIL_APP_PASSWORD = la contrasena de aplicacion (16 chars)")
+        print("\nPara generarla: myaccount.google.com/apppasswords")
+        print("(Necesitas verificacion en 2 pasos activada).")
+        pause_exit(1)
 
-    print(f"[1/3] Leyendo {xlsx_path} ...")
-    kpis = compute_kpis(xlsx_path)
+    # 3) Procesar y enviar
+    print(f"\n[1/3] Leyendo {Path(xlsx_path).name} ...")
+    try:
+        kpis = compute_kpis(xlsx_path)
+    except Exception as e:
+        print(f"ERROR al leer el archivo: {e}")
+        pause_exit(1)
+
     if not kpis:
         print("ERROR: el archivo esta vacio o no tiene filas de datos.")
-        sys.exit(1)
+        pause_exit(1)
 
     print(f"[2/3] Periodo: {kpis['mes']} | "
           f"{kpis['total_active']} servicios | {fmt_cop(kpis['total_factura'])}")
@@ -245,17 +295,27 @@ def main():
     try:
         send_mail(xlsx_path, kpis)
     except smtplib.SMTPAuthenticationError:
-        print("ERROR: autenticacion fallida. Verifica:")
+        print("\nERROR: autenticacion fallida. Verifica:")
         print("  - Tener verificacion en 2 pasos activada en tu cuenta Google.")
         print("  - Usar contrasena de APLICACION (no la contrasena normal).")
         print("  - GMAIL_USER y GMAIL_APP_PASSWORD correctos.")
-        sys.exit(1)
+        pause_exit(1)
     except Exception as e:
-        print(f"ERROR al enviar: {e}")
-        sys.exit(1)
+        print(f"\nERROR al enviar: {e}")
+        pause_exit(1)
 
-    print("OK: correo enviado correctamente.")
+    print("\nOK: correo enviado correctamente.")
+    pause_exit(0)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nCancelado por el usuario.")
+        pause_exit(1)
+    except Exception as e:
+        print(f"\nERROR inesperado: {e}")
+        import traceback
+        traceback.print_exc()
+        pause_exit(1)

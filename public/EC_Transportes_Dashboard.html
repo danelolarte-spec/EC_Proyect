@@ -1186,6 +1186,35 @@ function goToUpload() {
   G = {};
 }
 
+// ── Date helper ────────────────────────────────────────────────
+// Parsea YYYY-MM-DD (con o sin hora) como FECHA LOCAL, no UTC.
+// Evita el bug clasico: new Date("2026-05-01") en zona UTC-5 da abril 30.
+function parseFecha(d) {
+  if (d == null) return null;
+  if (d instanceof Date) return isNaN(d) ? null : d;
+  if (typeof d === 'number') {
+    // Excel serial
+    return new Date((d - 25569) * 86400 * 1000);
+  }
+  if (typeof d === 'string') {
+    const s = d.trim();
+    if (!s) return null;
+    // AAAA-MM-DD opcionalmente seguido de hora
+    const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (m) {
+      return new Date(+m[1], (+m[2]) - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+    }
+    // DD/MM/AAAA o DD-MM-AAAA
+    const m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m2) {
+      return new Date(+m2[3], (+m2[2]) - 1, +m2[1]);
+    }
+    const dt = new Date(s);
+    return isNaN(dt) ? null : dt;
+  }
+  return null;
+}
+
 // ── Compute ────────────────────────────────────────────────────
 function compute(raw) {
   // Normalize column names (trim spaces, handle encoding)
@@ -1200,16 +1229,7 @@ function compute(raw) {
   // Parse dates
   norm.forEach(r => {
     let d = r['FECHA DEL SERVICIO'];
-    if (d instanceof Date) {
-      r._date = d;
-    } else if (typeof d === 'string') {
-      r._date = new Date(d);
-    } else if (typeof d === 'number') {
-      // Excel serial date
-      r._date = new Date((d - 25569) * 86400 * 1000);
-    } else {
-      r._date = null;
-    }
+    r._date = parseFecha(d);
 
     let h = r['HORA DEL SERVICIO'];
     if (h instanceof Date) {
@@ -1531,20 +1551,29 @@ function renderDashboard() {
     }
   });
 
-  // Vehículo (bar)
+  // Vehículo (bar con dos ejes: servicios izq, facturacion der)
   const vehLabels = D.byVehiculo.map(r => r.name.replace(' - PAX', '').replace('  ', ' ').split('(')[0].trim());
   charts.vehiculo = new Chart(document.getElementById('chart-vehiculo'), {
     type: 'bar',
     data: {
       labels: vehLabels,
-      datasets: [{ label: 'Servicios', data: D.byVehiculo.map(r => r.svc), backgroundColor: '#2471A3CC', borderRadius: 4 },
-                 { label: 'Facturación', data: D.byVehiculo.map(r => r.factura / D.byVehiculo[0].factura * D.byVehiculo[0].svc), backgroundColor: GOLD_ALPHA(0.5), borderRadius: 4 }]
+      datasets: [
+        { label: 'Servicios',   data: D.byVehiculo.map(r => r.svc),     backgroundColor: '#2471A3CC',   borderRadius: 4, yAxisID: 'ySvc' },
+        { label: 'Facturación', data: D.byVehiculo.map(r => r.factura), backgroundColor: GOLD_ALPHA(0.6), borderRadius: 4, yAxisID: 'yFact' },
+      ]
     },
     options: {
-      plugins: { legend: { labels: { font: { size: 10 }, boxWidth: 10 } } },
+      plugins: {
+        legend: { labels: { font: { size: 10 }, boxWidth: 10 } },
+        tooltip: { callbacks: { label: ctx => {
+          const v = ctx.parsed.y;
+          return ctx.dataset.label === 'Facturación' ? `${ctx.dataset.label}: ${fmtFull(v)}` : `${ctx.dataset.label}: ${v}`;
+        }}}
+      },
       scales: {
-        x: { grid: { display: false }, ticks: { maxRotation: 40, font: { size: 9 } } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' } }
+        x:    { grid: { display: false }, ticks: { maxRotation: 40, font: { size: 9 } } },
+        ySvc: { position: 'left',  beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5BA3D9' }, title: { display: true, text: 'Servicios', color: '#5BA3D9', font: { size: 10 } } },
+        yFact:{ position: 'right', beginAtZero: true, grid: { display: false }, ticks: { color: '#C9A84C', callback: v => fmtCOP(v) }, title: { display: true, text: 'Facturación', color: '#C9A84C', font: { size: 10 } } },
       }
     }
   });

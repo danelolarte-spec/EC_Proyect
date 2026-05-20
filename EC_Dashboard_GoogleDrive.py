@@ -194,6 +194,37 @@ def build_interactive_html(rows_json, kpis):
     return template + injection
 
 
+def parse_fecha(d):
+    """Acepta datetime, date, o string 'YYYY-MM-DD'."""
+    if d is None:
+        return None
+    if isinstance(d, datetime):
+        return d
+    if isinstance(d, date):
+        return datetime(d.year, d.month, d.day)
+    if isinstance(d, str):
+        s = d.strip()
+        if not s:
+            return None
+        # YYYY-MM-DD opcional con hora
+        try:
+            return datetime.fromisoformat(s.replace(' ', 'T'))
+        except ValueError:
+            pass
+        # solo fecha
+        try:
+            return datetime.strptime(s[:10], "%Y-%m-%d")
+        except ValueError:
+            pass
+        # DD/MM/YYYY
+        for fmt in ("%d/%m/%Y", "%d-%m-%Y"):
+            try:
+                return datetime.strptime(s[:10], fmt)
+            except ValueError:
+                continue
+    return None
+
+
 def compute_kpis_from_data(data):
     if not data:
         return None
@@ -201,8 +232,8 @@ def compute_kpis_from_data(data):
     # Periodo (mes / anio) a partir de la primera fecha valida
     mes = "-"
     for r in data:
-        d = r.get('FECHA DEL SERVICIO')
-        if isinstance(d, datetime):
+        d = parse_fecha(r.get('FECHA DEL SERVICIO'))
+        if d is not None:
             mes = f"{MONTHS_ES[d.month - 1]} {d.year}"
             break
 
@@ -299,7 +330,7 @@ def build_html(k):
 """
 
 
-def send_mail(kpis, dashboard_html, dashboard_filename):
+def send_mail(kpis, dashboard_html, dashboard_filename, xlsx_path):
     msg = EmailMessage()
     msg['Subject'] = f"Dashboard Ejecutivo {EMPRESA} - {kpis['mes']}"
     msg['From'] = GMAIL_USER
@@ -312,8 +343,9 @@ def send_mail(kpis, dashboard_html, dashboard_filename):
         f"Servicios liquidados: {kpis['total_active']}\n"
         f"Facturacion total: {fmt_cop(kpis['total_factura'])}\n"
         f"Cancelados: {kpis['total_cancelled']} ({fmt_pct(kpis['pct_cancel'])})\n\n"
-        f"Abre el archivo adjunto (.html) en Chrome/Edge/Firefox para ver "
-        f"el dashboard interactivo completo."
+        f"Adjuntos:\n"
+        f"  - {dashboard_filename} (dashboard interactivo - abrir en navegador)\n"
+        f"  - {Path(xlsx_path).name} (datos fuente)"
     )
     msg.add_alternative(build_html(kpis), subtype='html')
 
@@ -324,6 +356,15 @@ def send_mail(kpis, dashboard_html, dashboard_filename):
         subtype='html',
         filename=dashboard_filename,
     )
+
+    # Adjuntar tambien el .xlsx original
+    with open(xlsx_path, 'rb') as f:
+        msg.add_attachment(
+            f.read(),
+            maintype='application',
+            subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            filename=Path(xlsx_path).name,
+        )
 
     recipients = DESTINATARIOS + CC
     ctx = ssl.create_default_context()
@@ -433,7 +474,7 @@ def main():
     # 5) Enviar
     print(f"[4/4] Enviando a: {', '.join(DESTINATARIOS)} ...")
     try:
-        send_mail(kpis, dashboard_html, dashboard_filename)
+        send_mail(kpis, dashboard_html, dashboard_filename, xlsx_path)
     except smtplib.SMTPAuthenticationError:
         print("\nERROR: autenticacion fallida. Verifica:")
         print("  - Tener verificacion en 2 pasos activada en tu cuenta Google.")

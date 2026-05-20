@@ -41,22 +41,72 @@ except ImportError:
     sys.exit(1)
 
 # =============================================================
-# CONFIGURACION  (edita estos valores)
+# CONFIGURACION
+#
+# YA NO necesitas editar este archivo. Las credenciales y los
+# destinatarios se leen de "config.txt" (junto a este script).
+# Si config.txt no existe, el script lo crea con una plantilla
+# la primera vez que se ejecuta.
 # =============================================================
-GMAIL_USER = os.environ.get("GMAIL_USER", "tu_correo@gmail.com")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "xxxx xxxx xxxx xxxx")
-
-# Destinatarios fijos
-DESTINATARIOS = [
-    "gerenciademarca@ectransportes.com",
-]
-
-# Con copia (opcional, dejar lista vacia [] si no se usa)
-CC = []
 
 EMPRESA = "EC Transportes"
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 465
+
+CONFIG_FILE = "config.txt"
+CONFIG_TEMPLATE = """# Configuracion para EC_Dashboard_GoogleDrive.py
+# Edita las lineas de abajo con tus datos. NO uses comillas.
+# Lineas que empiezan con # son comentarios y se ignoran.
+
+# Tu correo de Gmail
+GMAIL_USER=tu_correo@gmail.com
+
+# Contrasena de aplicacion (16 caracteres, con o sin espacios)
+# Generala en: https://myaccount.google.com/apppasswords
+GMAIL_APP_PASSWORD=xxxxxxxxxxxxxxxx
+
+# Destinatarios (separados por coma)
+DESTINATARIOS=gerenciademarca@ectransportes.com
+
+# Con copia (opcional, separados por coma. Dejar vacio si no se usa)
+CC=
+"""
+
+
+def load_config():
+    """Lee config.txt o lo crea con plantilla si no existe."""
+    script_dir = Path(__file__).resolve().parent
+    cfg_path = script_dir / CONFIG_FILE
+
+    if not cfg_path.exists():
+        cfg_path.write_text(CONFIG_TEMPLATE, encoding="utf-8")
+        print(f"Se creo {cfg_path}")
+        print("Editalo con tus datos (Bloc de notas) y vuelve a ejecutar.")
+        try:
+            input("\nPresiona Enter para cerrar...")
+        except EOFError:
+            pass
+        sys.exit(0)
+
+    cfg = {}
+    for line in cfg_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        cfg[key.strip()] = value.strip()
+
+    user = cfg.get("GMAIL_USER", "").strip()
+    password = cfg.get("GMAIL_APP_PASSWORD", "").strip()
+    destinatarios = [x.strip() for x in cfg.get("DESTINATARIOS", "").split(",") if x.strip()]
+    cc = [x.strip() for x in cfg.get("CC", "").split(",") if x.strip()]
+
+    return user, password, destinatarios, cc
+
+
+GMAIL_USER, GMAIL_APP_PASSWORD, DESTINATARIOS, CC = load_config()
 # =============================================================
 
 
@@ -267,13 +317,21 @@ def main():
         pause_exit(1)
 
     # 2) Validar credenciales
-    if GMAIL_APP_PASSWORD == "xxxx xxxx xxxx xxxx" or GMAIL_USER == "tu_correo@gmail.com":
+    if (not GMAIL_USER or not GMAIL_APP_PASSWORD
+            or GMAIL_USER == "tu_correo@gmail.com"
+            or GMAIL_APP_PASSWORD == "xxxxxxxxxxxxxxxx"):
         print("\nERROR: faltan credenciales.")
-        print("Abre este archivo .py con el Bloc de notas y edita:")
-        print("   GMAIL_USER         = tu correo de Gmail")
-        print("   GMAIL_APP_PASSWORD = la contrasena de aplicacion (16 chars)")
-        print("\nPara generarla: myaccount.google.com/apppasswords")
+        print("Abre 'config.txt' (en esta misma carpeta) con el Bloc de notas")
+        print("y completa:")
+        print("   GMAIL_USER=tu_correo@gmail.com")
+        print("   GMAIL_APP_PASSWORD=tu contrasena de aplicacion")
+        print("\nGenera la contrasena en: https://myaccount.google.com/apppasswords")
         print("(Necesitas verificacion en 2 pasos activada).")
+        pause_exit(1)
+
+    if not DESTINATARIOS:
+        print("\nERROR: no hay destinatarios.")
+        print("Edita 'config.txt' y agrega al menos un correo en DESTINATARIOS.")
         pause_exit(1)
 
     # 3) Procesar y enviar

@@ -87,7 +87,7 @@ El repositorio incluye `render.yaml` (Blueprint) para desplegar con un clic:
 3. Render detecta `render.yaml` y crea el servicio web automáticamente (`npm install` + `npm start`), generando `SESSION_SECRET` por ti.
 4. Al finalizar el despliegue obtendrás una URL pública tipo `https://ec-proyect.onrender.com`.
 
-**Importante — persistencia de datos**: el plan `free` usa disco efímero, por lo que `data.sqlite` se reinicia en cada nuevo despliegue. Para conservar los datos entre despliegues, sube el servicio al plan `starter` (o superior) y agrega un disco persistente montado en `/var/data`, con la variable `DATABASE_PATH=/var/data/data.sqlite` (ver comentarios en `render.yaml`).
+**Persistencia de datos**: el servicio corre en el plan `starter` con un disco persistente de 1GB montado en `/var/data` (`DATABASE_PATH=/var/data/data.sqlite`), así que `data.sqlite` sobrevive entre despliegues. El plan `free` no soporta disco persistente — si el servicio se baja a `free`, cada despliegue vuelve a dejar la base de datos vacía (solo el usuario admin por defecto).
 
 ## Notas
 

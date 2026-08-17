@@ -53,10 +53,30 @@ async function CalendarView(root) {
 
       dayTasks.slice(0, 3).forEach((t) => {
         const overdue = dateStr < todayStr && t.status !== 'Completada';
-        cell.appendChild(UI.el('div', { class: 'cal-item ' + (t.status === 'Completada' ? 'ok' : overdue ? 'danger' : ''), title: t.name + ' · ' + (t.user_name || '') }, '✓ ' + t.name));
+        cell.appendChild(
+          UI.el(
+            'div',
+            {
+              class: 'cal-item ' + (t.status === 'Completada' ? 'ok' : overdue ? 'danger' : ''),
+              title: t.name + ' · ' + (t.user_name || ''),
+              onClick: (e) => { e.stopPropagation(); showTaskDates(t); }
+            },
+            '✓ ' + t.name
+          )
+        );
       });
       dayContent.slice(0, 3).forEach((c) => {
-        cell.appendChild(UI.el('div', { class: 'cal-item warn', title: c.brand + ': ' + c.topic }, '✦ ' + c.topic));
+        cell.appendChild(
+          UI.el(
+            'div',
+            {
+              class: 'cal-item warn',
+              title: c.brand + ': ' + c.topic,
+              onClick: (e) => { e.stopPropagation(); showContentDates(c); }
+            },
+            '✦ ' + c.topic
+          )
+        );
       });
       const extra = dayTasks.length + dayContent.length - 6;
       if (extra > 0) cell.appendChild(UI.el('div', { style: 'font-size:0.7rem;color:var(--muted)' }, '+' + extra + ' más'));
@@ -77,4 +97,49 @@ async function CalendarView(root) {
     );
   }
   render();
+}
+
+function calInfoRow(label, value) {
+  return UI.el('div', { style: 'display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)' }, [
+    UI.el('span', { style: 'color:var(--muted);font-size:0.85rem' }, label),
+    UI.el('span', { style: 'font-weight:600;color:var(--text);font-size:0.85rem;text-align:right' }, value || '—')
+  ]);
+}
+
+function showTaskDates(t) {
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = t.due_date && t.due_date < today && t.status !== 'Completada';
+  const body = UI.el('div', {}, [
+    UI.el('div', { style: 'margin-bottom:10px' }, [UI.badge(t.status, taskStatusVariant(t.status)), overdue ? ' ' : null, overdue ? UI.badge('Vencida', 'danger') : null]),
+    calInfoRow('Proyecto', t.project_code ? t.project_code + ' · ' + t.project_name : 'Sin proyecto'),
+    calInfoRow('Responsable', t.user_name || 'Sin asignar'),
+    calInfoRow('Fecha de asignación', UI.fmtDate(t.assigned_date)),
+    calInfoRow('Fecha de entrega', UI.fmtDate(t.due_date)),
+    t.objective ? UI.el('div', { style: 'margin-top:12px;font-size:0.85rem;color:var(--muted)' }, [UI.el('strong', { style: 'color:var(--text)' }, 'Objetivo: '), t.objective]) : null
+  ]);
+  const m = UI.modal({
+    title: t.name,
+    body,
+    footer: [
+      t.project_id
+        ? UI.el('button', { class: 'btn btn-gold', onClick: () => { m.close(); window.location.hash = '#project/' + t.project_id; } }, 'Ver proyecto')
+        : null,
+      UI.el('button', { class: 'btn btn-primary', onClick: () => { m.close(); window.location.hash = '#tasks'; } }, 'Ir a Tareas')
+    ]
+  });
+}
+
+function showContentDates(c) {
+  const body = UI.el('div', {}, [
+    UI.el('div', { style: 'margin-bottom:10px' }, [UI.badge(c.brand, 'dark'), ' ', UI.badge(c.status, 'gold')]),
+    calInfoRow('Fecha de publicación', UI.fmtDate(c.publish_date)),
+    calInfoRow('Hora', c.publish_time || '—'),
+    calInfoRow('Formato', c.format || '—'),
+    calInfoRow('Objetivo', c.objective || '—')
+  ]);
+  const m = UI.modal({
+    title: c.topic || 'Contenido creativo',
+    body,
+    footer: [UI.el('button', { class: 'btn btn-primary', onClick: () => { m.close(); window.location.hash = '#creative'; } }, 'Ir a Área Creativa')]
+  });
 }

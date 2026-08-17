@@ -25,6 +25,7 @@ async function KanbanView(root) {
     }
   }
 
+  const today = new Date().toISOString().slice(0, 10);
   const board = UI.el('div', { class: 'kanban' });
   statuses.forEach((status) => {
     const colTasks = tasks.filter((t) => t.status === status);
@@ -32,7 +33,9 @@ async function KanbanView(root) {
     col.appendChild(
       UI.el('h3', {}, [status, UI.el('span', { class: 'count' }, colTasks.length)])
     );
+    const colBody = UI.el('div', { class: 'kan-col-body' });
     colTasks.forEach((t) => {
+      const overdue = t.due_date && t.due_date < today && status !== 'Completada' && status !== 'Cancelada';
       const moveSelect = UI.select(
         statuses.filter((s) => s !== status).map((s) => ({ value: s, label: 'Mover a: ' + s })),
         '',
@@ -44,10 +47,13 @@ async function KanbanView(root) {
       moveSelect.addEventListener('change', () => {
         if (moveSelect.value) moveTask(t, moveSelect.value);
       });
-      const card = UI.el('div', { class: 'kan-card', draggable: true, dataset: { id: t.id } }, [
+      const card = UI.el('div', { class: 'kan-card' + (overdue ? ' overdue' : ''), draggable: true, dataset: { id: t.id } }, [
         UI.el('strong', {}, t.name),
         t.project_code ? UI.el('div', { style: 'font-size:0.75rem;color:var(--muted)' }, t.project_code + ' · ' + t.project_name) : null,
-        UI.el('small', {}, (t.user_name || 'Sin asignar') + ' · ' + (t.due_date || 'Sin fecha')),
+        UI.el('small', {}, [
+          (t.user_name || 'Sin asignar') + ' · ' + (t.due_date || 'Sin fecha'),
+          overdue ? UI.badge('Vencida', 'danger') : null
+        ]),
         moveSelect
       ]);
       card.addEventListener('dragstart', (e) => {
@@ -55,8 +61,9 @@ async function KanbanView(root) {
         card.style.opacity = '0.5';
       });
       card.addEventListener('dragend', () => (card.style.opacity = '1'));
-      col.appendChild(card);
+      colBody.appendChild(card);
     });
+    col.appendChild(colBody);
     col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('drag-over'); });
     col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
     col.addEventListener('drop', (e) => {

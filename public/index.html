@@ -5,16 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EC Proyect — Ingreso</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('ec-theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="login-body">
+  <div class="login-orb"></div>
   <div class="login-shell">
     <div class="login-card">
-      <div class="brand">
-        <div class="brand-mark"></div>
-        <div class="brand-text">
-          <h1>EC Proyect</h1>
-          <p>Plataforma de Gestión</p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div class="brand-text">
+            <h1>EC Proyect</h1>
+            <p>Plataforma de Gestión</p>
+          </div>
         </div>
+        <div id="themeToggleHost"></div>
       </div>
       <form id="loginForm">
         <label>Correo electrónico</label>
@@ -29,7 +41,9 @@
       </div>
     </div>
   </div>
+  <script src="/js/theme.js"></script>
   <script>
+    document.getElementById('themeToggleHost').appendChild(Theme.widget());
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('email').value;

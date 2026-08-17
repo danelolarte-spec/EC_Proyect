@@ -8,6 +8,8 @@
   document.getElementById('userEmail').textContent = me.email;
   document.getElementById('userAvatar').textContent = (me.name || '?').charAt(0).toUpperCase();
 
+  document.getElementById('themeToggleHost').appendChild(Theme.widget());
+
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await API.post('/api/auth/logout', {});
     window.location.href = '/';

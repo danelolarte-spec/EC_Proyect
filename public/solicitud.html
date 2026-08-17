@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solicitud de Contenido — EC Proyect</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('ec-theme');
+        if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="request-body">
   <div class="request-shell">

@@ -91,53 +91,64 @@ async function ProjectsView(root) {
         ])
       );
     }
-    const grid = UI.el('div', { class: 'cards-grid' });
-    group.items.forEach((p) => grid.appendChild(projectCard(p, projects, users)));
-    root.appendChild(grid);
+    const list = UI.el('div', { class: 'projects-list' });
+    group.items.forEach((p) => list.appendChild(projectRow(p, projects, users)));
+    root.appendChild(list);
   });
 }
 
-function projectCard(p, projects, users) {
+function projectRow(p, projects, users) {
   const score = (p.impact || 0) * (p.effort || 0);
   const openDetail = () => (window.location.hash = '#project/' + p.id);
-  const card = UI.el('div', { class: 'card card-clickable', onClick: openDetail }, [
-    UI.el('div', { style: 'display:flex;justify-content:space-between;align-items:start;margin-bottom:8px' }, [
-      UI.el('div', {}, [
-        UI.el('div', { style: 'color:var(--gold-2);font-size:0.78rem;font-weight:700;letter-spacing:0.5px' }, p.code),
-        UI.el('h3', { style: 'margin:4px 0 0;color:var(--dark)' }, p.name)
-      ]),
-      UI.badge(p.status, statusVariant(p.status))
-    ]),
-    UI.el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px' }, [
-      p.category === 'Marca' ? UI.badge(p.brand, 'dark') : null,
-      p.category === 'Innovación' ? UI.badge('Innovación', 'gold') : null,
-      p.process_type ? UI.badge(p.process_type, 'info') : null
-    ]),
-    UI.el('p', { style: 'color:var(--muted);font-size:0.85rem;margin:4px 0 10px;min-height:36px' }, p.objective || p.description || 'Sin objetivo'),
-    UI.el('div', { style: 'display:flex;gap:12px;font-size:0.8rem;color:var(--muted);margin-bottom:10px' }, [
-      UI.el('span', {}, 'Impacto: ' + (p.impact || '—') + '/5'),
-      UI.el('span', {}, 'Esfuerzo: ' + (p.effort || '—') + '/5'),
-      UI.el('span', {}, 'Score: ' + score)
-    ]),
-    UI.el('div', { style: 'font-size:0.82rem;margin-bottom:6px;color:var(--dark)' }, 'Presupuesto: $' + (p.budget || 0).toLocaleString()),
-    UI.el('div', { style: 'font-size:0.78rem;margin-bottom:6px' }, 'Avance: ' + p.progress + '% (' + p.tasks_done + '/' + p.tasks_total + ')'),
-    UI.el('div', { class: 'progress', style: 'margin-bottom:10px' }, UI.el('span', { style: `width:${p.progress}%` })),
-    p.depends_on ? UI.el('div', { style: 'font-size:0.78rem;color:var(--muted);margin-bottom:8px' }, ['Depende de: ', UI.el('strong', {}, p.depends_on.name), ' (', p.depends_on.status, ')', !p.can_start ? ' — bloqueado' : '']) : null,
-    UI.el('div', { style: 'font-size:0.78rem;color:var(--muted);margin-bottom:10px' }, 'Responsables: ' + (p.users.map((u) => u.name).join(', ') || '—')),
-    UI.el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' }, [
-      UI.el('button', { class: 'btn btn-gold small', onClick: (e) => { e.stopPropagation(); openDetail(); } }, 'Ver ficha'),
-      UI.el('button', { class: 'btn btn-ghost small', onClick: (e) => { e.stopPropagation(); projectForm(p, projects, users); } }, 'Editar'),
-      UI.el('button', { class: 'btn btn-danger small', onClick: (e) => {
-        e.stopPropagation();
+  const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
+
+  const badges = UI.el('div', { class: 'pr-badges' }, [
+    UI.badge(p.status, statusVariant(p.status)),
+    p.category === 'Marca' ? UI.badge(p.brand, 'dark') : null,
+    p.category === 'Innovación' ? UI.badge('Innovación', 'gold') : null,
+    p.process_type ? UI.badge(p.process_type, 'info') : null
+  ]);
+
+  const main = UI.el('div', { class: 'pr-main' }, [
+    UI.el('div', { class: 'pr-code' }, p.code),
+    UI.el('h3', { class: 'pr-name', title: p.name }, p.name),
+    badges,
+    p.depends_on
+      ? UI.el('div', { style: 'font-size:0.76rem;color:var(--muted);margin-top:6px' }, [
+          'Depende de: ', UI.el('strong', {}, p.depends_on.name), !p.can_start ? ' — bloqueado' : ''
+        ])
+      : null
+  ]);
+
+  const metricsWrap = UI.el('div', { class: 'pr-metrics-wrap' }, [
+    UI.el('div', { class: 'pr-metric' }, [UI.el('div', { class: 'pr-metric-label' }, 'Impacto'), UI.el('div', { class: 'pr-metric-value' }, (p.impact || '—') + '/5')]),
+    UI.el('div', { class: 'pr-metric' }, [UI.el('div', { class: 'pr-metric-label' }, 'Esfuerzo'), UI.el('div', { class: 'pr-metric-value' }, (p.effort || '—') + '/5')]),
+    UI.el('div', { class: 'pr-metric' }, [UI.el('div', { class: 'pr-metric-label' }, 'Score'), UI.el('div', { class: 'pr-metric-value' }, String(score))]),
+    UI.el('div', { class: 'pr-metric' }, [UI.el('div', { class: 'pr-metric-label' }, 'Presupuesto'), UI.el('div', { class: 'pr-metric-value' }, '$' + (p.budget || 0).toLocaleString())])
+  ]);
+
+  const progress = UI.el('div', { class: 'pr-progress' }, [
+    UI.el('div', { class: 'pr-progress-label' }, [UI.el('span', {}, 'Avance'), UI.el('span', {}, p.progress + '% · ' + p.tasks_done + '/' + p.tasks_total)]),
+    UI.el('div', { class: 'progress' }, UI.el('span', { style: `width:${p.progress}%` })),
+    UI.el('div', { style: 'font-size:0.74rem;color:var(--muted);margin-top:6px' }, p.users.map((u) => u.name).join(', ') || 'Sin responsables')
+  ]);
+
+  const actions = UI.el('div', { class: 'pr-actions' }, [
+    UI.el('button', { class: 'btn btn-gold small', onClick: stop(openDetail) }, 'Ver ficha'),
+    UI.el('button', { class: 'btn btn-ghost small', onClick: stop(() => projectForm(p, projects, users)) }, 'Editar'),
+    UI.el('button', {
+      class: 'btn btn-danger small',
+      onClick: stop(() =>
         UI.confirmDialog('¿Eliminar proyecto "' + p.name + '"? Se eliminarán sus tareas.', async () => {
           await API.del('/api/projects/' + p.id);
           UI.toast('Proyecto eliminado', 'success');
           refresh();
-        });
-      } }, 'Eliminar')
-    ])
+        })
+      )
+    }, 'Eliminar')
   ]);
-  return card;
+
+  return UI.el('div', { class: 'project-row', onClick: openDetail, title: p.objective || '' }, [main, metricsWrap, progress, actions]);
 }
 
 function statusVariant(status) {

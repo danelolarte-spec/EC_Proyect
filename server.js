@@ -480,5 +480,4 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`EC Proyect running at http://localhost:${PORT}`);
-  console.log('Default login: admin@ecproyect.com / admin123');
 });

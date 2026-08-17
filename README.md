@@ -29,12 +29,7 @@ npm start
 # Aplicación disponible en http://localhost:3000
 ```
 
-### Credenciales por defecto
-
-- Correo: `admin@ecproyect.com`
-- Contraseña: `admin123`
-
-El primer arranque crea la base de datos `data.sqlite`, el usuario administrador y algunas áreas de ejemplo.
+El primer arranque crea la base de datos `data.sqlite`, un usuario administrador inicial (ver `db/seed.js`) y algunas áreas de ejemplo. **Cambia esa contraseña (o elimina esa cuenta) desde Usuarios en cuanto tengas un administrador real configurado** — no la dejes con su valor de fábrica en producción.
 
 ## Estructura del proyecto
 

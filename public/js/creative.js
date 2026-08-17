@@ -221,13 +221,13 @@ async function CreativeTasksView(root) {
       UI.el('th', {}, 'Acciones')
     ])),
     UI.el('tbody', {}, tasks.map((t) => UI.el('tr', {}, [
-      UI.el('td', {}, UI.el('strong', {}, t.name)),
-      UI.el('td', {}, t.objective || '—'),
-      UI.el('td', {}, t.user_name || '—'),
-      UI.el('td', {}, UI.fmtDate(t.assigned_date)),
-      UI.el('td', {}, UI.fmtDate(t.due_date)),
-      UI.el('td', {}, UI.badge(t.status, taskStatusVariant(t.status))),
-      UI.el('td', {}, UI.el('div', { class: 'actions' }, [
+      UI.el('td', { 'data-label': 'Tarea' }, UI.el('strong', {}, t.name)),
+      UI.el('td', { 'data-label': 'Objetivo' }, t.objective || '—'),
+      UI.el('td', { 'data-label': 'Responsable' }, t.user_name || '—'),
+      UI.el('td', { 'data-label': 'Asignación' }, UI.fmtDate(t.assigned_date)),
+      UI.el('td', { 'data-label': 'Entrega' }, UI.fmtDate(t.due_date)),
+      UI.el('td', { 'data-label': 'Estado' }, UI.badge(t.status, taskStatusVariant(t.status))),
+      UI.el('td', { 'data-label': 'Acciones' }, UI.el('div', { class: 'actions' }, [
         UI.el('button', { class: 'btn btn-ghost', onClick: () => creativeTaskForm(t, users) }, 'Editar'),
         UI.el('button', { class: 'btn btn-danger', onClick: () => UI.confirmDialog('¿Eliminar tarea?', async () => {
           await API.del('/api/creative/tasks/' + t.id);

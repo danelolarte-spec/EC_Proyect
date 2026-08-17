@@ -25,11 +25,18 @@ const UI = (() => {
     const root = document.getElementById('modalRoot');
     const backdrop = el('div', { class: 'modal-backdrop' });
     const card = el('div', { class: 'modal ' + (wide ? 'wide' : '') });
-    const close = () => backdrop.remove();
+    const close = () => {
+      backdrop.remove();
+      document.removeEventListener('keydown', onKeydown);
+      if (!document.querySelector('.modal-backdrop')) document.body.classList.remove('modal-open');
+    };
+    const onKeydown = (e) => {
+      if (e.key === 'Escape') close();
+    };
     card.appendChild(
       el('div', { class: 'modal-head' }, [
         el('h3', {}, title),
-        el('button', { class: 'close', onClick: close }, '×')
+        el('button', { class: 'close', onClick: close, 'aria-label': 'Cerrar' }, '×')
       ])
     );
     const bodyNode = el('div', { class: 'modal-body' });
@@ -45,7 +52,11 @@ const UI = (() => {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) close();
     });
+    document.addEventListener('keydown', onKeydown);
+    document.body.classList.add('modal-open');
     root.appendChild(backdrop);
+    const focusable = bodyNode.querySelector('input, textarea, select');
+    if (focusable) setTimeout(() => focusable.focus(), 50);
     return { close };
   }
 
@@ -109,10 +120,14 @@ const UI = (() => {
     return el('span', { class: 'badge ' + variant }, text);
   }
 
+  function loading(label = 'Cargando...') {
+    return el('div', { class: 'view-loading' }, [el('div', { class: 'spinner' }), el('span', {}, label)]);
+  }
+
   function fmtDate(s) {
     if (!s) return '—';
     return s.slice(0, 10);
   }
 
-  return { el, toast, modal, confirmDialog, formRow, input, textarea, select, multiCheck, badge, fmtDate };
+  return { el, toast, modal, confirmDialog, formRow, input, textarea, select, multiCheck, badge, fmtDate, loading };
 })();

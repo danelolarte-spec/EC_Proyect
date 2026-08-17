@@ -25,14 +25,14 @@ async function RequestsView(root) {
       UI.el('th', {}, 'Acciones')
     ])),
     UI.el('tbody', {}, reqs.map((r) => UI.el('tr', {}, [
-      UI.el('td', {}, '#' + r.id),
-      UI.el('td', {}, UI.badge(r.request_type, 'info')),
-      UI.el('td', {}, r.subtype || '—'),
-      UI.el('td', {}, [UI.el('strong', {}, r.requester_name), UI.el('div', { style: 'font-size:0.75rem;color:var(--muted)' }, r.requester_position || '')]),
-      UI.el('td', {}, r.requester_email),
-      UI.el('td', {}, UI.fmtDate(r.scheduled_date)),
-      UI.el('td', {}, UI.badge(r.status, r.status === 'Completada' ? 'ok' : r.status === 'En curso' ? 'gold' : 'warn')),
-      UI.el('td', {}, UI.el('div', { class: 'actions' }, [
+      UI.el('td', { 'data-label': '#' }, '#' + r.id),
+      UI.el('td', { 'data-label': 'Tipo' }, UI.badge(r.request_type, 'info')),
+      UI.el('td', { 'data-label': 'Subtipo' }, r.subtype || '—'),
+      UI.el('td', { 'data-label': 'Solicitante' }, [UI.el('strong', {}, r.requester_name), UI.el('div', { style: 'font-size:0.75rem;color:var(--muted)' }, r.requester_position || '')]),
+      UI.el('td', { 'data-label': 'Correo' }, r.requester_email),
+      UI.el('td', { 'data-label': 'Fecha programada' }, UI.fmtDate(r.scheduled_date)),
+      UI.el('td', { 'data-label': 'Estado' }, UI.badge(r.status, r.status === 'Completada' ? 'ok' : r.status === 'En curso' ? 'gold' : 'warn')),
+      UI.el('td', { 'data-label': 'Acciones' }, UI.el('div', { class: 'actions' }, [
         UI.el('button', { class: 'btn btn-ghost', onClick: () => showRequest(r) }, 'Ver'),
         UI.el('button', { class: 'btn btn-danger', onClick: () => UI.confirmDialog('¿Eliminar solicitud?', async () => {
           await API.del('/api/requests/' + r.id);

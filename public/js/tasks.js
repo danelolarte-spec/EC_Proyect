@@ -69,13 +69,13 @@ async function TasksView(root) {
       tasks.map((t) => {
         const overdue = t.due_date && t.due_date < today && t.status !== 'Completada';
         return UI.el('tr', {}, [
-          UI.el('td', {}, [UI.el('strong', {}, t.name), t.role ? UI.el('div', { style: 'font-size:0.75rem;color:var(--muted)' }, 'Rol: ' + t.role) : null]),
-          UI.el('td', {}, t.project_code ? UI.el('span', {}, t.project_code + ' · ' + t.project_name) : '—'),
-          UI.el('td', {}, t.user_name || '—'),
-          UI.el('td', {}, UI.fmtDate(t.assigned_date)),
-          UI.el('td', {}, [UI.fmtDate(t.due_date), overdue ? ' ' : null, overdue ? UI.badge('Vencida', 'danger') : null]),
-          UI.el('td', {}, UI.badge(t.status, taskStatusVariant(t.status))),
-          UI.el('td', {}, UI.el('div', { class: 'actions' }, [
+          UI.el('td', { 'data-label': 'Tarea' }, [UI.el('strong', {}, t.name), t.role ? UI.el('div', { style: 'font-size:0.75rem;color:var(--muted)' }, 'Rol: ' + t.role) : null]),
+          UI.el('td', { 'data-label': 'Proyecto' }, t.project_code ? UI.el('span', {}, t.project_code + ' · ' + t.project_name) : '—'),
+          UI.el('td', { 'data-label': 'Responsable' }, t.user_name || '—'),
+          UI.el('td', { 'data-label': 'Asignación' }, UI.fmtDate(t.assigned_date)),
+          UI.el('td', { 'data-label': 'Entrega' }, [UI.fmtDate(t.due_date), overdue ? ' ' : null, overdue ? UI.badge('Vencida', 'danger') : null]),
+          UI.el('td', { 'data-label': 'Estado' }, UI.badge(t.status, taskStatusVariant(t.status))),
+          UI.el('td', { 'data-label': 'Acciones' }, UI.el('div', { class: 'actions' }, [
             UI.el('button', { class: 'btn btn-ghost', onClick: () => taskForm(t, projects, users) }, 'Editar'),
             UI.el('button', { class: 'btn btn-danger', onClick: () => UI.confirmDialog('¿Eliminar tarea "' + t.name + '"?', async () => {
               await API.del('/api/tasks/' + t.id);

@@ -13,8 +13,26 @@
     window.location.href = '/';
   });
 
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  document.body.appendChild(overlay);
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  }
+
   document.getElementById('menuBtn').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  overlay.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) closeSidebar();
   });
 
   const routes = {
@@ -30,19 +48,42 @@
     areas: AreasView
   };
 
+  // Guards against a slow navigation (e.g. Render's cold-start delay) finishing after
+  // a newer one started — otherwise both would render into the same #view element and
+  // their content would mix together once the slow one's data finally arrives.
+  let navToken = 0;
+
   async function navigate() {
+    const myToken = ++navToken;
     const hash = window.location.hash.replace('#', '') || 'dashboard';
     const route = hash.split('?')[0];
     document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === route));
     const view = document.getElementById('view');
     view.innerHTML = '';
+    view.classList.remove('view-enter');
+    const loadingEl = UI.loading();
+    loadingEl.classList.add('view-loading-overlay');
+    view.appendChild(loadingEl);
+
+    // Each navigation builds into its own private container instead of the live #view
+    // element, so a stale (superseded) navigation simply never gets attached — it can't
+    // interleave its content with whatever navigation is current by the time it resolves.
+    const container = document.createElement('div');
     const fn = routes[route] || DashboardView;
     try {
-      await fn(view);
+      await fn(container);
     } catch (e) {
-      view.innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+      if (myToken === navToken) view.innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+      return;
     }
-    if (window.innerWidth <= 900) document.getElementById('sidebar').classList.remove('open');
+    if (myToken !== navToken) return; // a newer navigation started meanwhile; discard this one
+
+    view.innerHTML = '';
+    view.appendChild(container);
+    // restart the fade-in animation on every navigation, including same-route refreshes
+    void view.offsetWidth;
+    view.classList.add('view-enter');
+    if (window.innerWidth <= 900) closeSidebar();
   }
 
   window.addEventListener('hashchange', navigate);

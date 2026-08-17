@@ -26,12 +26,12 @@ async function UsersView(root) {
       {},
       users.map((u) =>
         UI.el('tr', {}, [
-          UI.el('td', {}, UI.el('strong', {}, u.name)),
-          UI.el('td', {}, u.email),
-          UI.el('td', {}, UI.badge(u.role, u.role === 'admin' ? 'dark' : '')),
-          UI.el('td', {}, u.areas.map((a) => a.name).join(', ') || '—'),
-          UI.el('td', {}, u.projects.map((p) => p.name).join(', ') || '—'),
-          UI.el('td', {}, UI.el('div', { class: 'actions' }, [
+          UI.el('td', { 'data-label': 'Nombre' }, UI.el('strong', {}, u.name)),
+          UI.el('td', { 'data-label': 'Correo' }, u.email),
+          UI.el('td', { 'data-label': 'Rol' }, UI.badge(u.role, u.role === 'admin' ? 'dark' : '')),
+          UI.el('td', { 'data-label': 'Áreas' }, u.areas.map((a) => a.name).join(', ') || '—'),
+          UI.el('td', { 'data-label': 'Proyectos' }, u.projects.map((p) => p.name).join(', ') || '—'),
+          UI.el('td', { 'data-label': 'Acciones' }, UI.el('div', { class: 'actions' }, [
             UI.el('button', { class: 'btn btn-ghost', onClick: () => userForm(u, areas, projects) }, 'Editar'),
             UI.el(
               'button',

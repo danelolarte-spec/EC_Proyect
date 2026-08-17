@@ -8,6 +8,8 @@ services:
     envVars:
       - key: SESSION_SECRET
         generateValue: true
+      - key: NODE_VERSION
+        value: 22.22.2
 
 # Nota: el plan "free" usa disco efímero — la base de datos SQLite se
 # reinicia en cada nuevo despliegue. Para persistencia real entre

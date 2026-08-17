@@ -19,6 +19,7 @@ Plataforma web integral para la gestión de proyectos, equipos, tareas, áreas o
 - **Backend**: Node.js + Express + SQLite (better-sqlite3) + sesiones.
 - **Frontend**: SPA vanilla JavaScript (sin build step) con enrutamiento por hash.
 - **Autenticación**: sesión con contraseña hasheada (bcrypt).
+- **Acceso a datos**: patrón repositorio — las rutas de `server.js` no ejecutan SQL directamente, delegan en los módulos de `repositories/`.
 
 ## Instalación y ejecución
 
@@ -38,8 +39,21 @@ El primer arranque crea la base de datos `data.sqlite`, el usuario administrador
 ## Estructura del proyecto
 
 ```
-server.js            # Express server y rutas API
-database.js          # Esquema SQLite y seed inicial
+server.js            # Express server y rutas API (usa repositories/, sin SQL directo)
+db/
+  connection.js       # Conexión SQLite (pragmas: WAL, foreign_keys)
+  schema.js            # Definición de tablas (CREATE TABLE IF NOT EXISTS)
+  seed.js               # Usuario administrador y áreas de ejemplo iniciales
+  index.js               # Punto de entrada: conecta, crea esquema y siembra datos
+repositories/
+  userRepository.js
+  areaRepository.js
+  projectRepository.js
+  taskRepository.js
+  creativeContentRepository.js
+  creativeTaskRepository.js
+  requestRepository.js
+  index.js              # Agrupa y exporta todos los repositorios
 public/
   index.html         # Login
   app.html           # SPA principal

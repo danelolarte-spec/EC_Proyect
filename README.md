@@ -78,7 +78,19 @@ public/
 
 La interfaz se adapta a escritorio, tablet y móvil. Sidebar colapsable, tablas con scroll horizontal, calendario ajustado.
 
+## Despliegue en Render
+
+El repositorio incluye `render.yaml` (Blueprint) para desplegar con un clic:
+
+1. Entra a [render.com](https://render.com) e inicia sesión (o crea una cuenta) con GitHub.
+2. **New +** → **Blueprint** → selecciona el repositorio `EC_Proyect` y la rama deseada.
+3. Render detecta `render.yaml` y crea el servicio web automáticamente (`npm install` + `npm start`), generando `SESSION_SECRET` por ti.
+4. Al finalizar el despliegue obtendrás una URL pública tipo `https://ec-proyect.onrender.com`.
+
+**Importante — persistencia de datos**: el plan `free` usa disco efímero, por lo que `data.sqlite` se reinicia en cada nuevo despliegue. Para conservar los datos entre despliegues, sube el servicio al plan `starter` (o superior) y agrega un disco persistente montado en `/var/data`, con la variable `DATABASE_PATH=/var/data/data.sqlite` (ver comentarios en `render.yaml`).
+
 ## Notas
 
 - El `PORT` puede establecerse por variable de entorno (`PORT=8080 npm start`).
-- Para producción, cambiar `SESSION_SECRET` por una clave segura.
+- Para producción, cambiar `SESSION_SECRET` por una clave segura (Render la genera automáticamente vía Blueprint).
+- La ruta del archivo SQLite puede configurarse con `DATABASE_PATH` (por defecto usa `data.sqlite` en la raíz del proyecto).

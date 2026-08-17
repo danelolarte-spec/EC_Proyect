@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ec-proyect
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+
+# Nota: el plan "free" usa disco efímero — la base de datos SQLite se
+# reinicia en cada nuevo despliegue. Para persistencia real entre
+# despliegues, sube el plan a "starter" o superior y agrega un disco
+# persistente, por ejemplo:
+#
+#   plan: starter
+#   disk:
+#     name: ec-proyect-data
+#     mountPath: /var/data
+#     sizeGB: 1
+#   envVars:
+#     - key: DATABASE_PATH
+#       value: /var/data/data.sqlite

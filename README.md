@@ -5,7 +5,7 @@ Plataforma web integral para la gestión de proyectos, equipos, tareas, áreas o
 ## Módulos
 
 1. **Usuarios y Áreas** — creación, edición, eliminación; asignación múltiple a áreas y proyectos.
-2. **Proyectos** — código único automático (`PRY-XXXX`), objetivo, descripción, clasificación de proceso (Estratégico / Misional / Apoyo), impacto y esfuerzo (1-5), dependencias entre proyectos (bloquea el inicio hasta completar el dependiente), presupuesto total y por tarea.
+2. **Proyectos** — código único automático (`PRY-XXXX`), objetivo, descripción, clasificación de proceso (Estratégico / Misional / Apoyo), clasificación por **Marca** (EC Transportes / EC Tours / All Roads) o **Innovación** (con agrupación automática en el listado), impacto y esfuerzo (1-5), dependencias entre proyectos (bloquea el inicio hasta completar el dependiente), presupuesto total y por tarea. Cada proyecto tiene una **ficha de detalle** (`#project/<id>`) con información editable en línea, tareas del proyecto, equipo asignado e historial de actividad.
 3. **Tareas y Planes de Trabajo** — asignación por proyecto y usuario, filtros por rango de fechas, rol/función y proyecto.
 4. **Cronograma** — vista calendario mensual con tareas y publicaciones; vistas Lista y Kanban con drag-and-drop.
 5. **Área Creativa (Parrilla)** — contenido para *EC Transportes*, *EC Tours* y *All Roads*: fecha/hora, objetivo, tema, formato, redes sociales, copy, indicaciones, link y estado del flujo.

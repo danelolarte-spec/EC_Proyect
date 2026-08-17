@@ -18,8 +18,21 @@ function migrateCreativeContentBrands(db) {
   db.exec('DROP TABLE creative_content');
 }
 
+function migrateProjectClassification(db) {
+  const table = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='projects'").get();
+  if (!table) return; // will be created fresh by createSchema with the new columns
+  const columns = db.prepare('PRAGMA table_info(projects)').all().map((c) => c.name);
+  if (!columns.includes('category')) {
+    db.exec("ALTER TABLE projects ADD COLUMN category TEXT CHECK (category IN ('Marca','Innovación'))");
+  }
+  if (!columns.includes('brand')) {
+    db.exec("ALTER TABLE projects ADD COLUMN brand TEXT CHECK (brand IN ('EC Transportes','EC Tours','All Roads'))");
+  }
+}
+
 function runMigrations(db) {
   migrateCreativeContentBrands(db);
+  migrateProjectClassification(db);
 }
 
 module.exports = { runMigrations };

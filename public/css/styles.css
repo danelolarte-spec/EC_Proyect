@@ -111,7 +111,14 @@ button { font-family: inherit; }
 
 /* ===== Cards / grid ===== */
 .card { background: var(--panel); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); }
-.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.card-clickable { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.card-clickable:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(8,38,51,0.12); }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.cards-grid:last-child { margin-bottom: 0; }
+
+.group-heading { display: flex; align-items: center; gap: 10px; margin: 22px 0 12px; }
+.group-heading:first-child { margin-top: 0; }
+.group-heading h2 { margin: 0; color: var(--dark); font-size: 1.05rem; }
 .stat-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden; }
 .stat-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gold); }
 .stat-card h3 { margin: 0; font-size: 0.82rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -222,6 +229,16 @@ table.data td .actions button { padding: 4px 10px; font-size: 0.78rem; }
 .result-msg { margin-top: 14px; padding: 10px; border-radius: 8px; font-size: 0.9rem; }
 .result-msg.success { background: #d9f1e5; color: #1d6d4d; }
 .result-msg.error { background: #f8d9d9; color: #812020; }
+
+/* ===== Project detail (ficha) ===== */
+.detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+.detail-main, .detail-side { min-width: 0; }
+.activity-list { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+.activity-item { padding: 8px 10px; border-left: 2px solid var(--gold); background: var(--bg); border-radius: 0 6px 6px 0; }
+
+@media (max-width: 900px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
 
 /* ===== Panels / layouts ===== */
 .panel-split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }

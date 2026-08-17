@@ -7,26 +7,36 @@ function nextCode() {
   return 'PRY-' + String(n).padStart(4, '0');
 }
 
+function enrich(p) {
+  p.users = db
+    .prepare('SELECT u.id, u.name FROM users u JOIN user_projects up ON up.user_id = u.id WHERE up.project_id = ?')
+    .all(p.id);
+  p.tasks_total = db.prepare('SELECT COUNT(*) AS c FROM tasks WHERE project_id = ?').get(p.id).c;
+  p.tasks_done = db
+    .prepare("SELECT COUNT(*) AS c FROM tasks WHERE project_id = ? AND status = 'Completada'")
+    .get(p.id).c;
+  p.progress = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
+  if (p.depends_on_id) {
+    const dep = db.prepare('SELECT id, name, status FROM projects WHERE id = ?').get(p.depends_on_id);
+    p.depends_on = dep;
+    p.can_start = dep && dep.status === 'Completado';
+  } else {
+    p.can_start = true;
+  }
+  return p;
+}
+
 function findAllWithDetails() {
-  const projects = db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all();
-  projects.forEach((p) => {
-    p.users = db
-      .prepare('SELECT u.id, u.name FROM users u JOIN user_projects up ON up.user_id = u.id WHERE up.project_id = ?')
-      .all(p.id);
-    p.tasks_total = db.prepare('SELECT COUNT(*) AS c FROM tasks WHERE project_id = ?').get(p.id).c;
-    p.tasks_done = db
-      .prepare("SELECT COUNT(*) AS c FROM tasks WHERE project_id = ? AND status = 'Completada'")
-      .get(p.id).c;
-    p.progress = p.tasks_total > 0 ? Math.round((p.tasks_done / p.tasks_total) * 100) : 0;
-    if (p.depends_on_id) {
-      const dep = db.prepare('SELECT id, name, status FROM projects WHERE id = ?').get(p.depends_on_id);
-      p.depends_on = dep;
-      p.can_start = dep && dep.status === 'Completado';
-    } else {
-      p.can_start = true;
-    }
-  });
-  return projects;
+  return db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all().map(enrich);
+}
+
+function findById(id) {
+  const p = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+  return p ? enrich(p) : null;
+}
+
+function findRawById(id) {
+  return db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
 }
 
 function findStatusById(id) {
@@ -49,12 +59,14 @@ function create({
   budget,
   status,
   start_date,
-  end_date
+  end_date,
+  category,
+  brand
 }) {
   const info = db
     .prepare(
-      `INSERT INTO projects (code, name, objective, description, process_type, impact, effort, depends_on_id, budget, status, start_date, end_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO projects (code, name, objective, description, process_type, impact, effort, depends_on_id, budget, status, start_date, end_date, category, brand)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       code,
@@ -68,18 +80,34 @@ function create({
       budget || 0,
       status || 'Planificado',
       start_date || null,
-      end_date || null
+      end_date || null,
+      category || null,
+      category === 'Marca' ? brand || null : null
     );
   return info.lastInsertRowid;
 }
 
 function update(
   id,
-  { name, objective, description, process_type, impact, effort, depends_on_id, budget, status, start_date, end_date }
+  {
+    name,
+    objective,
+    description,
+    process_type,
+    impact,
+    effort,
+    depends_on_id,
+    budget,
+    status,
+    start_date,
+    end_date,
+    category,
+    brand
+  }
 ) {
   db.prepare(
     `UPDATE projects SET name=?, objective=?, description=?, process_type=?, impact=?, effort=?,
-     depends_on_id=?, budget=?, status=?, start_date=?, end_date=? WHERE id=?`
+     depends_on_id=?, budget=?, status=?, start_date=?, end_date=?, category=?, brand=? WHERE id=?`
   ).run(
     name,
     objective || '',
@@ -92,6 +120,8 @@ function update(
     status || 'Planificado',
     start_date || null,
     end_date || null,
+    category || null,
+    category === 'Marca' ? brand || null : null,
     id
   );
 }
@@ -138,6 +168,8 @@ function topProgress(limit) {
 module.exports = {
   nextCode,
   findAllWithDetails,
+  findById,
+  findRawById,
   findStatusById,
   findDependencyById,
   create,

@@ -100,13 +100,13 @@ function taskStatusVariant(s) {
   return '';
 }
 
-function taskForm(task, projects, users) {
+function taskForm(task, projects, users, defaultProjectId) {
   const nameI = UI.input({ type: 'text', required: true }, task ? task.name : '');
   const objI = UI.textarea({}, task ? task.objective : '');
   const specI = UI.textarea({}, task ? task.specifications : '');
   const projI = UI.select(
     [{ value: '', label: '— Sin proyecto —' }].concat(projects.map((p) => ({ value: p.id, label: p.code + ' · ' + p.name }))),
-    task ? task.project_id || '' : ''
+    task ? task.project_id || '' : defaultProjectId || ''
   );
   const userI = UI.select(
     [{ value: '', label: '— Sin asignar —' }].concat(users.map((u) => ({ value: u.id, label: u.name }))),

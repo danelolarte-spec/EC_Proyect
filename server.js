@@ -7,6 +7,7 @@ const {
   userRepository,
   areaRepository,
   projectRepository,
+  projectActivityRepository,
   taskRepository,
   creativeContentRepository,
   creativeTaskRepository,
@@ -33,6 +34,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 function requireAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: 'No autenticado' });
   next();
+}
+
+function currentUserName(req) {
+  const u = req.session.userId ? userRepository.findPublicById(req.session.userId) : null;
+  return u ? u.name : null;
 }
 
 // ---------- Auth ----------
@@ -123,6 +129,16 @@ app.get('/api/projects', requireAuth, (req, res) => {
   res.json(projectRepository.findAllWithDetails());
 });
 
+app.get('/api/projects/:id', requireAuth, (req, res) => {
+  const project = projectRepository.findById(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  res.json(project);
+});
+
+app.get('/api/projects/:id/activity', requireAuth, (req, res) => {
+  res.json(projectActivityRepository.findByProject(req.params.id));
+});
+
 app.post('/api/projects', requireAuth, (req, res) => {
   const {
     name,
@@ -136,9 +152,12 @@ app.post('/api/projects', requireAuth, (req, res) => {
     status,
     start_date,
     end_date,
+    category,
+    brand,
     users = []
   } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
+  if (category === 'Marca' && !brand) return res.status(400).json({ error: 'Selecciona la marca' });
   try {
     const code = projectRepository.nextCode();
     const pid = projectRepository.create({
@@ -153,9 +172,12 @@ app.post('/api/projects', requireAuth, (req, res) => {
       budget,
       status,
       start_date,
-      end_date
+      end_date,
+      category,
+      brand
     });
     projectRepository.addUsers(pid, users);
+    projectActivityRepository.log(pid, 'Proyecto creado', currentUserName(req));
     res.json({ id: pid, code });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -175,9 +197,12 @@ app.put('/api/projects/:id', requireAuth, (req, res) => {
     status,
     start_date,
     end_date,
+    category,
+    brand,
     users = []
   } = req.body || {};
   const id = req.params.id;
+  if (category === 'Marca' && !brand) return res.status(400).json({ error: 'Selecciona la marca' });
 
   // If trying to move status away from Planificado, check dependency
   if (status && status !== 'Planificado' && depends_on_id) {
@@ -186,6 +211,9 @@ app.put('/api/projects/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'No se puede iniciar: el proyecto del que depende no está completado.' });
     }
   }
+
+  const before = projectRepository.findRawById(id);
+  if (!before) return res.status(404).json({ error: 'Proyecto no encontrado' });
 
   try {
     projectRepository.update(id, {
@@ -199,9 +227,30 @@ app.put('/api/projects/:id', requireAuth, (req, res) => {
       budget,
       status,
       start_date,
-      end_date
+      end_date,
+      category,
+      brand
     });
     projectRepository.setUsers(id, users);
+
+    const userName = currentUserName(req);
+    if (status && status !== before.status) {
+      projectActivityRepository.log(id, `Estado: "${before.status}" → "${status}"`, userName);
+    }
+    const newBudget = Number(budget) || 0;
+    if (newBudget !== Number(before.budget)) {
+      projectActivityRepository.log(
+        id,
+        `Presupuesto: $${Number(before.budget || 0).toLocaleString()} → $${newBudget.toLocaleString()}`,
+        userName
+      );
+    }
+    const newCategory = category || null;
+    const newBrand = newCategory === 'Marca' ? brand || null : null;
+    if (newCategory !== before.category || newBrand !== before.brand) {
+      const label = newCategory === 'Marca' ? `Marca (${newBrand})` : newCategory === 'Innovación' ? 'Innovación' : 'Sin clasificar';
+      projectActivityRepository.log(id, `Clasificación cambiada a: ${label}`, userName);
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -245,12 +294,14 @@ app.post('/api/tasks', requireAuth, (req, res) => {
     budget,
     role
   });
+  if (project_id) projectActivityRepository.log(project_id, `Tarea creada: "${name}"`, currentUserName(req));
   res.json({ id });
 });
 
 app.put('/api/tasks/:id', requireAuth, (req, res) => {
   const { project_id, name, objective, specifications, assigned_date, due_date, user_id, status, budget, role } =
     req.body || {};
+  const before = taskRepository.findById(req.params.id);
   taskRepository.update(req.params.id, {
     project_id,
     name,
@@ -263,11 +314,18 @@ app.put('/api/tasks/:id', requireAuth, (req, res) => {
     budget,
     role
   });
+  if (project_id && before && status && status !== before.status) {
+    projectActivityRepository.log(project_id, `Tarea "${name}": estado "${before.status}" → "${status}"`, currentUserName(req));
+  }
   res.json({ ok: true });
 });
 
 app.delete('/api/tasks/:id', requireAuth, (req, res) => {
+  const task = taskRepository.findById(req.params.id);
   taskRepository.remove(req.params.id);
+  if (task && task.project_id) {
+    projectActivityRepository.log(task.project_id, `Tarea eliminada: "${task.name}"`, currentUserName(req));
+  }
   res.json({ ok: true });
 });
 

@@ -25,6 +25,10 @@ function findAll({ project_id, user_id, from, to } = {}) {
   return db.prepare(q).all(...params);
 }
 
+function findById(id) {
+  return db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+}
+
 function create({ project_id, name, objective, specifications, assigned_date, due_date, user_id, status, budget, role }) {
   const info = db
     .prepare(
@@ -77,4 +81,4 @@ function countPending() {
   return db.prepare("SELECT COUNT(*) AS c FROM tasks WHERE status != 'Completada'").get().c;
 }
 
-module.exports = { findAll, create, update, remove, countOverdue, countPending };
+module.exports = { findAll, findById, create, update, remove, countOverdue, countPending };

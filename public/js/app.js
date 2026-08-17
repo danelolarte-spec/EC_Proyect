@@ -57,7 +57,8 @@
     const myToken = ++navToken;
     const hash = window.location.hash.replace('#', '') || 'dashboard';
     const route = hash.split('?')[0];
-    document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === route));
+    const projectDetailMatch = route.match(/^project\/(\d+)$/);
+    document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('active', a.dataset.route === (projectDetailMatch ? 'projects' : route)));
     const view = document.getElementById('view');
     view.innerHTML = '';
     view.classList.remove('view-enter');
@@ -69,9 +70,13 @@
     // element, so a stale (superseded) navigation simply never gets attached — it can't
     // interleave its content with whatever navigation is current by the time it resolves.
     const container = document.createElement('div');
-    const fn = routes[route] || DashboardView;
     try {
-      await fn(container);
+      if (projectDetailMatch) {
+        await ProjectDetailView(container, projectDetailMatch[1]);
+      } else {
+        const fn = routes[route] || DashboardView;
+        await fn(container);
+      }
     } catch (e) {
       if (myToken === navToken) view.innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
       return;

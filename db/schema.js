@@ -38,6 +38,8 @@ function createSchema(db) {
       status TEXT DEFAULT 'Planificado',
       start_date TEXT,
       end_date TEXT,
+      category TEXT CHECK (category IN ('Marca','Innovación')),
+      brand TEXT CHECK (brand IN ('EC Transportes','EC Tours','All Roads')),
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (depends_on_id) REFERENCES projects(id) ON DELETE SET NULL
     );
@@ -47,6 +49,15 @@ function createSchema(db) {
       project_id INTEGER NOT NULL,
       PRIMARY KEY (user_id, project_id),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS project_activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      user_name TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
 

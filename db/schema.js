@@ -69,7 +69,7 @@ function createSchema(db) {
 
     CREATE TABLE IF NOT EXISTS creative_content (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      brand TEXT NOT NULL CHECK (brand IN ('SC Transportes','SC Tours','Olros')),
+      brand TEXT NOT NULL CHECK (brand IN ('EC Transportes','EC Tours','All Roads')),
       publish_date TEXT,
       publish_time TEXT,
       objective TEXT CHECK (objective IN ('Promocional','Informativo','Entretenimiento','Conexión')),

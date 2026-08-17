@@ -10,7 +10,7 @@ async function CreativeView(root) {
 
     root.appendChild(
       UI.el('div', { class: 'page-header' }, [
-        UI.el('div', {}, [UI.el('h1', {}, 'Área Creativa'), UI.el('span', { class: 'hint' }, 'Parrilla de contenidos para SC Transportes, SC Tours y Olros')]),
+        UI.el('div', {}, [UI.el('h1', {}, 'Área Creativa'), UI.el('span', { class: 'hint' }, 'Parrilla de contenidos para EC Transportes, EC Tours y All Roads')]),
         UI.el('button', { class: 'btn btn-primary', onClick: () => contentForm(null) }, '+ Nueva publicación')
       ])
     );
@@ -18,9 +18,9 @@ async function CreativeView(root) {
     const brandF = UI.select(
       [
         { value: '', label: 'Todas las marcas' },
-        { value: 'SC Transportes', label: 'SC Transportes' },
-        { value: 'SC Tours', label: 'SC Tours' },
-        { value: 'Olros', label: 'Olros' }
+        { value: 'EC Transportes', label: 'EC Transportes' },
+        { value: 'EC Tours', label: 'EC Tours' },
+        { value: 'All Roads', label: 'All Roads' }
       ],
       state.brand
     );
@@ -84,11 +84,11 @@ function statusVariantCreative(s) {
 function contentForm(c) {
   const brandI = UI.select(
     [
-      { value: 'SC Transportes', label: 'SC Transportes' },
-      { value: 'SC Tours', label: 'SC Tours' },
-      { value: 'Olros', label: 'Olros' }
+      { value: 'EC Transportes', label: 'EC Transportes' },
+      { value: 'EC Tours', label: 'EC Tours' },
+      { value: 'All Roads', label: 'All Roads' }
     ],
-    c ? c.brand : 'SC Transportes'
+    c ? c.brand : 'EC Transportes'
   );
   const dateI = UI.input({ type: 'date' }, c ? c.publish_date : '');
   const timeI = UI.input({ type: 'time' }, c ? c.publish_time : '');

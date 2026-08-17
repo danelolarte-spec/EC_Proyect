@@ -8,7 +8,7 @@ Plataforma web integral para la gestión de proyectos, equipos, tareas, áreas o
 2. **Proyectos** — código único automático (`PRY-XXXX`), objetivo, descripción, clasificación de proceso (Estratégico / Misional / Apoyo), impacto y esfuerzo (1-5), dependencias entre proyectos (bloquea el inicio hasta completar el dependiente), presupuesto total y por tarea.
 3. **Tareas y Planes de Trabajo** — asignación por proyecto y usuario, filtros por rango de fechas, rol/función y proyecto.
 4. **Cronograma** — vista calendario mensual con tareas y publicaciones; vistas Lista y Kanban con drag-and-drop.
-5. **Área Creativa (Parrilla)** — contenido para *SC Transportes*, *SC Tours* y *Olros*: fecha/hora, objetivo, tema, formato, redes sociales, copy, indicaciones, link y estado del flujo.
+5. **Área Creativa (Parrilla)** — contenido para *EC Transportes*, *EC Tours* y *All Roads*: fecha/hora, objetivo, tema, formato, redes sociales, copy, indicaciones, link y estado del flujo.
 6. **Tareas Creativas** — tareas específicas del área creativa.
 7. **Formulario externo** en `/solicitud.html` — sin login, con plantillas predeterminadas (Vacante, Foto corporativa, Firma corporativa, Parrilla de sensibilización) y tipo "Nueva solicitud".
 8. **Dashboard** — métricas de proyectos activos, completados, tareas vencidas/pendientes, contenido del mes, y avance por proyecto.

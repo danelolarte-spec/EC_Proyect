@@ -5,9 +5,13 @@ async function DashboardView(root) {
     API.get('/api/tasks')
   ]);
 
+  const personal = data.scope === 'personal';
   root.appendChild(
     UI.el('div', { class: 'page-header' }, [
-      UI.el('div', {}, [UI.el('h1', {}, 'Dashboard'), UI.el('span', { class: 'hint' }, 'Panorama estratégico para la toma de decisiones')])
+      UI.el('div', {}, [
+        UI.el('h1', {}, personal ? 'Mi panorama' : 'Dashboard'),
+        UI.el('span', { class: 'hint' }, personal ? 'Tus proyectos y tareas asignadas' : 'Panorama estratégico para la toma de decisiones')
+      ])
     ])
   );
 
@@ -41,9 +45,9 @@ async function DashboardView(root) {
 
   // ---------- KPI row ----------
   const stats = UI.el('div', { class: 'cards-grid' }, [
-    statCard('Presupuesto activo', '$' + budgetActive.toLocaleString(), '', '#projects', '$' + budgetTotal.toLocaleString() + ' en total'),
+    statCard(personal ? 'Presupuesto de mis proyectos' : 'Presupuesto activo', '$' + budgetActive.toLocaleString(), '', '#projects', '$' + budgetTotal.toLocaleString() + ' en total'),
     statCard('Cumplimiento global', completionRate + '%', completionRate >= 70 ? 'ok' : completionRate >= 40 ? 'warn' : 'danger', '#projects', doneTasks + '/' + totalTasksAll + ' tareas'),
-    statCard('Proyectos en riesgo', atRiskCount, atRiskCount ? 'danger' : 'ok', '#projects', atRiskCount ? 'requieren atención' : 'todo en orden'),
+    statCard(personal ? 'Mis proyectos en riesgo' : 'Proyectos en riesgo', atRiskCount, atRiskCount ? 'danger' : 'ok', '#projects', atRiskCount ? 'requieren atención' : 'todo en orden'),
     statCard('Tareas vencidas', data.overdueTasks, data.overdueTasks ? 'danger' : 'ok', '#tasks')
   ]);
   root.appendChild(stats);
@@ -53,7 +57,7 @@ async function DashboardView(root) {
 
   const priorityCard = UI.el('div', { class: 'card' }, [
     UI.el('div', { class: 'exec-section-head' }, [
-      UI.el('h2', {}, 'Proyectos prioritarios'),
+      UI.el('h2', {}, personal ? 'Mis proyectos prioritarios' : 'Proyectos prioritarios'),
       UI.el('span', { class: 'hint' }, 'Por impacto × esfuerzo')
     ])
   ]);
@@ -87,44 +91,43 @@ async function DashboardView(root) {
     ])
   );
 
-  const workloadCard = UI.el('div', { class: 'card' }, [
-    UI.el('div', { class: 'exec-section-head' }, [UI.el('h2', {}, 'Carga de trabajo'), UI.el('span', { class: 'hint' }, 'Tareas pendientes por responsable')])
-  ]);
-  const workload = {};
-  tasks.forEach((t) => {
-    if (t.status === 'Completada' || t.status === 'Cancelada') return;
-    const name = t.user_name || 'Sin asignar';
-    workload[name] = (workload[name] || 0) + 1;
-  });
-  const workloadEntries = Object.entries(workload).sort((a, b) => b[1] - a[1]).slice(0, 7);
-  if (workloadEntries.length === 0) {
-    workloadCard.appendChild(UI.el('div', { class: 'empty' }, 'No hay tareas pendientes.'));
-  } else {
-    const maxCount = workloadEntries[0][1];
-    const bars = UI.el('div', { class: 'bar-list' });
-    workloadEntries.forEach(([name, count]) => {
-      bars.appendChild(
-        UI.el('div', { class: 'bar-row' }, [
-          UI.el('div', { class: 'bar-row-label' }, [UI.el('span', {}, name), UI.el('span', {}, count + ' tareas')]),
-          UI.el('div', { class: 'bar-track' }, UI.el('span', { style: `width:${Math.round((count / maxCount) * 100)}%` }))
-        ])
-      );
-    });
-    workloadCard.appendChild(bars);
-  }
-
   execGrid.appendChild(priorityCard);
-  execGrid.appendChild(workloadCard);
+
+  if (!personal) {
+    const workloadCard = UI.el('div', { class: 'card' }, [
+      UI.el('div', { class: 'exec-section-head' }, [UI.el('h2', {}, 'Carga de trabajo'), UI.el('span', { class: 'hint' }, 'Tareas pendientes por responsable')])
+    ]);
+    const workload = {};
+    tasks.forEach((t) => {
+      if (t.status === 'Completada' || t.status === 'Cancelada') return;
+      const name = t.user_name || 'Sin asignar';
+      workload[name] = (workload[name] || 0) + 1;
+    });
+    const workloadEntries = Object.entries(workload).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    if (workloadEntries.length === 0) {
+      workloadCard.appendChild(UI.el('div', { class: 'empty' }, 'No hay tareas pendientes.'));
+    } else {
+      const maxCount = workloadEntries[0][1];
+      const bars = UI.el('div', { class: 'bar-list' });
+      workloadEntries.forEach(([name, count]) => {
+        bars.appendChild(
+          UI.el('div', { class: 'bar-row' }, [
+            UI.el('div', { class: 'bar-row-label' }, [UI.el('span', {}, name), UI.el('span', {}, count + ' tareas')]),
+            UI.el('div', { class: 'bar-track' }, UI.el('span', { style: `width:${Math.round((count / maxCount) * 100)}%` }))
+          ])
+        );
+      });
+      workloadCard.appendChild(bars);
+    }
+    execGrid.appendChild(workloadCard);
+  }
   root.appendChild(execGrid);
 
   // ---------- Investment by brand / innovation ----------
-  const brandGroups = [
-    { label: 'EC Transportes', match: (p) => p.category === 'Marca' && p.brand === 'EC Transportes' },
-    { label: 'EC Tours', match: (p) => p.category === 'Marca' && p.brand === 'EC Tours' },
-    { label: 'All Roads', match: (p) => p.category === 'Marca' && p.brand === 'All Roads' },
+  const brandGroups = (personal ? [] : EC_BRANDS.map((b) => ({ label: b, match: (p) => p.category === 'Marca' && p.brand === b })).concat([
     { label: 'Innovación', match: (p) => p.category === 'Innovación' },
     { label: 'Sin clasificar', match: (p) => !p.category }
-  ]
+  ]))
     .map((g) => ({ label: g.label, count: projects.filter(g.match).length, budget: projects.filter(g.match).reduce((s, p) => s + (p.budget || 0), 0) }))
     .filter((g) => g.count > 0);
 
@@ -148,11 +151,11 @@ async function DashboardView(root) {
 
   // ---------- Org snapshot ----------
   const orgCard = UI.el('div', { class: 'card exec-section' }, [
-    UI.el('div', { class: 'exec-section-head' }, [UI.el('h2', {}, 'Panorama organizacional')]),
+    UI.el('div', { class: 'exec-section-head' }, [UI.el('h2', {}, personal ? 'Mi resumen' : 'Panorama organizacional')]),
     UI.el('div', { class: 'grid-3' }, [
-      orgStat('Proyectos totales', data.total, '#projects'),
+      orgStat(personal ? 'Mis proyectos' : 'Proyectos totales', data.total, '#projects'),
       orgStat('Completados', data.completed, '#projects'),
-      orgStat('Tareas pendientes', data.pendingTasks, '#tasks'),
+      orgStat(personal ? 'Mis tareas pendientes' : 'Tareas pendientes', data.pendingTasks, '#tasks'),
       orgStat('Usuarios activos', data.totalUsers, '#users'),
       orgStat('Áreas', data.totalAreas, '#areas'),
       orgStat('Contenido del mes', data.contentThisMonth, '#creative')

@@ -39,7 +39,7 @@ function createSchema(db) {
       start_date TEXT,
       end_date TEXT,
       category TEXT CHECK (category IN ('Marca','Innovación')),
-      brand TEXT CHECK (brand IN ('EC Transportes','EC Tours','All Roads')),
+      brand TEXT CHECK (brand IN ('EC Group','EC Transportes','EC Tours','All Roads')),
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (depends_on_id) REFERENCES projects(id) ON DELETE SET NULL
     );
@@ -80,7 +80,7 @@ function createSchema(db) {
 
     CREATE TABLE IF NOT EXISTS creative_content (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      brand TEXT NOT NULL CHECK (brand IN ('EC Transportes','EC Tours','All Roads')),
+      brand TEXT NOT NULL CHECK (brand IN ('EC Group','EC Transportes','EC Tours','All Roads')),
       publish_date TEXT,
       publish_time TEXT,
       objective TEXT CHECK (objective IN ('Promocional','Informativo','Entretenimiento','Conexión')),
@@ -91,7 +91,9 @@ function createSchema(db) {
       design_notes TEXT,
       file_link TEXT,
       status TEXT CHECK (status IN ('Preproducción','Producción','Diseño','Publicación','Archivado','Pendiente de autorización')) DEFAULT 'Preproducción',
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      user_id INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS creative_tasks (

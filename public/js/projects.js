@@ -1,8 +1,8 @@
-const PROJECT_BRANDS = ['EC Transportes', 'EC Tours', 'All Roads'];
+const PROJECT_STATUSES = ['Planificado', 'En curso', 'Pausado', 'Completado', 'Cancelado'];
 
 async function ProjectsView(root) {
   const params = new URLSearchParams(window.location.hash.split('?')[1] || '');
-  const state = { category: params.get('category') || '', brand: params.get('brand') || '' };
+  const state = { category: params.get('category') || '', brand: params.get('brand') || '', status: params.get('status') || '' };
 
   const [projects, users] = await Promise.all([API.get('/api/projects'), API.get('/api/users')]);
 
@@ -29,14 +29,19 @@ async function ProjectsView(root) {
     state.category
   );
   const brandF = UI.select(
-    [{ value: '', label: 'Todas las marcas' }].concat(PROJECT_BRANDS.map((b) => ({ value: b, label: b }))),
+    [{ value: '', label: 'Todas las marcas' }].concat(EC_BRANDS.map((b) => ({ value: b, label: b }))),
     state.brand
   );
   brandF.disabled = state.category !== 'Marca';
+  const statusF = UI.select(
+    [{ value: '', label: 'Todos los estados' }].concat(PROJECT_STATUSES.map((s) => ({ value: s, label: s }))),
+    state.status
+  );
   const applyFilters = () => {
     const q = new URLSearchParams();
     if (categoryF.value) q.set('category', categoryF.value);
     if (categoryF.value === 'Marca' && brandF.value) q.set('brand', brandF.value);
+    if (statusF.value) q.set('status', statusF.value);
     window.location.hash = '#projects' + (q.toString() ? '?' + q.toString() : '');
   };
   categoryF.addEventListener('change', () => {
@@ -44,23 +49,26 @@ async function ProjectsView(root) {
     applyFilters();
   });
   brandF.addEventListener('change', applyFilters);
+  statusF.addEventListener('change', applyFilters);
   root.appendChild(
     UI.el('div', { class: 'toolbar' }, [
       UI.el('span', { style: 'font-weight:600;color:var(--dark);font-size:0.85rem' }, 'Organizar por:'),
       categoryF,
-      brandF
+      brandF,
+      statusF
     ])
   );
 
   // ---------- Filter + group ----------
   let filtered = projects;
   if (state.category === 'Marca') {
-    filtered = projects.filter((p) => p.category === 'Marca' && (!state.brand || p.brand === state.brand));
+    filtered = filtered.filter((p) => p.category === 'Marca' && (!state.brand || p.brand === state.brand));
   } else if (state.category === 'Innovación') {
-    filtered = projects.filter((p) => p.category === 'Innovación');
+    filtered = filtered.filter((p) => p.category === 'Innovación');
   } else if (state.category === 'sin-clasificar') {
-    filtered = projects.filter((p) => !p.category);
+    filtered = filtered.filter((p) => !p.category);
   }
+  if (state.status) filtered = filtered.filter((p) => p.status === state.status);
 
   if (filtered.length === 0) {
     root.appendChild(UI.el('div', { class: 'empty' }, 'Ningún proyecto coincide con este filtro.'));
@@ -68,9 +76,9 @@ async function ProjectsView(root) {
   }
 
   const groups = [];
-  if (!state.category) {
+  if (!state.category && !state.status) {
     // No filter active: organize the whole list by Marca / Innovación automatically.
-    PROJECT_BRANDS.forEach((b) => {
+    EC_BRANDS.forEach((b) => {
       const items = projects.filter((p) => p.category === 'Marca' && p.brand === b);
       if (items.length) groups.push({ label: b, items });
     });
@@ -148,7 +156,11 @@ function projectRow(p, projects, users) {
     }, 'Eliminar')
   ]);
 
-  return UI.el('div', { class: 'project-row', onClick: openDetail, title: p.objective || '' }, [main, metricsWrap, progress, actions]);
+  return UI.el(
+    'div',
+    { class: 'project-row', dataset: { status: p.status || '' }, onClick: openDetail, title: p.objective || '' },
+    [main, metricsWrap, progress, actions]
+  );
 }
 
 function statusVariant(status) {
@@ -184,7 +196,7 @@ function projectForm(project, allProjects, users) {
     project ? project.category || '' : ''
   );
   const brandI = UI.select(
-    [{ value: '', label: '— Selecciona la marca —' }].concat(PROJECT_BRANDS.map((b) => ({ value: b, label: b }))),
+    [{ value: '', label: '— Selecciona la marca —' }].concat(EC_BRANDS.map((b) => ({ value: b, label: b }))),
     project ? project.brand || '' : ''
   );
   const brandRow = UI.formRow('Marca', brandI);
@@ -206,13 +218,7 @@ function projectForm(project, allProjects, users) {
   const depI = UI.select(depOptions, project ? project.depends_on_id || '' : '');
   const budgetI = UI.input({ type: 'number', min: 0, step: '0.01' }, project ? project.budget : 0);
   const statusI = UI.select(
-    [
-      { value: 'Planificado', label: 'Planificado' },
-      { value: 'En curso', label: 'En curso' },
-      { value: 'Pausado', label: 'Pausado' },
-      { value: 'Completado', label: 'Completado' },
-      { value: 'Cancelado', label: 'Cancelado' }
-    ],
+    PROJECT_STATUSES.map((s) => ({ value: s, label: s })),
     project ? project.status : 'Planificado'
   );
   const startI = UI.input({ type: 'date' }, project ? project.start_date : '');

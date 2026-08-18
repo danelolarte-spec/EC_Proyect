@@ -1,25 +1,35 @@
 const db = require('../db');
 
-function findAll({ brand, status } = {}) {
-  let q = 'SELECT * FROM creative_content WHERE 1=1';
+function findAll({ brand, status, network } = {}) {
+  let q = `SELECT c.*, u.name AS user_name FROM creative_content c LEFT JOIN users u ON u.id = c.user_id WHERE 1=1`;
   const params = [];
   if (brand) {
-    q += ' AND brand = ?';
+    q += ' AND c.brand = ?';
     params.push(brand);
   }
   if (status) {
-    q += ' AND status = ?';
+    q += ' AND c.status = ?';
     params.push(status);
   }
-  q += ' ORDER BY publish_date ASC, publish_time ASC';
+  if (network) {
+    q += ' AND c.networks LIKE ?';
+    params.push('%"' + network + '"%');
+  }
+  q += ' ORDER BY c.publish_date ASC, c.publish_time ASC';
   return db.prepare(q).all(...params);
 }
 
-function create({ brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status }) {
+function findById(id) {
+  return db
+    .prepare('SELECT c.*, u.name AS user_name FROM creative_content c LEFT JOIN users u ON u.id = c.user_id WHERE c.id = ?')
+    .get(id);
+}
+
+function create({ brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status, user_id }) {
   const info = db
     .prepare(
-      `INSERT INTO creative_content (brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO creative_content (brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status, user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       brand,
@@ -32,15 +42,16 @@ function create({ brand, publish_date, publish_time, objective, topic, format, n
       copy || '',
       design_notes || '',
       file_link || '',
-      status || 'Preproducción'
+      status || 'Preproducción',
+      user_id || null
     );
   return info.lastInsertRowid;
 }
 
-function update(id, { brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status }) {
+function update(id, { brand, publish_date, publish_time, objective, topic, format, networks, copy, design_notes, file_link, status, user_id }) {
   db.prepare(
     `UPDATE creative_content SET brand=?, publish_date=?, publish_time=?, objective=?, topic=?, format=?, networks=?,
-     copy=?, design_notes=?, file_link=?, status=? WHERE id=?`
+     copy=?, design_notes=?, file_link=?, status=?, user_id=? WHERE id=?`
   ).run(
     brand,
     publish_date || null,
@@ -53,6 +64,7 @@ function update(id, { brand, publish_date, publish_time, objective, topic, forma
     design_notes || '',
     file_link || '',
     status || 'Preproducción',
+    user_id || null,
     id
   );
 }
@@ -65,4 +77,4 @@ function countThisMonth(yearMonth) {
   return db.prepare("SELECT COUNT(*) AS c FROM creative_content WHERE substr(publish_date,1,7) = ?").get(yearMonth).c;
 }
 
-module.exports = { findAll, create, update, remove, countThisMonth };
+module.exports = { findAll, findById, create, update, remove, countThisMonth };

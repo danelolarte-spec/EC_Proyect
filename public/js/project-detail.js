@@ -14,6 +14,7 @@ async function ProjectDetailView(root, id) {
 
   let editingInfo = false;
   let editingTeam = false;
+  const calState = { year: new Date().getFullYear(), month: new Date().getMonth() };
 
   function toPayload(overrides = {}) {
     return {
@@ -39,7 +40,7 @@ async function ProjectDetailView(root, id) {
     root.innerHTML = '';
     root.appendChild(header());
     root.appendChild(UI.el('div', { class: 'detail-grid' }, [
-      UI.el('div', { class: 'detail-main' }, [infoCard(), tasksCard()]),
+      UI.el('div', { class: 'detail-main' }, [infoCard(), tasksCard(), scheduleCard()]),
       UI.el('div', { class: 'detail-side' }, [teamCard(), activityCard()])
     ]));
   }
@@ -138,7 +139,7 @@ async function ProjectDetailView(root, id) {
       project.category || ''
     );
     const brandI = UI.select(
-      [{ value: '', label: '— Selecciona la marca —' }].concat(PROJECT_BRANDS.map((b) => ({ value: b, label: b }))),
+      [{ value: '', label: '— Selecciona la marca —' }].concat(EC_BRANDS.map((b) => ({ value: b, label: b }))),
       project.brand || ''
     );
     const brandRow = UI.formRow('Marca', brandI);
@@ -285,6 +286,58 @@ async function ProjectDetailView(root, id) {
       }))
     ]);
     card.appendChild(UI.el('div', { class: 'tbl-wrap' }, table));
+    return card;
+  }
+
+  // ---------- Schedule (mini calendar) card ----------
+  function scheduleCard() {
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const dows = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+    const card = UI.el('div', { class: 'card', style: 'margin-top:16px' });
+    const prevBtn = UI.el('button', { class: 'btn btn-ghost small', onClick: () => { calState.month--; if (calState.month < 0) { calState.month = 11; calState.year--; } render(); } }, '‹');
+    const nextBtn = UI.el('button', { class: 'btn btn-ghost small', onClick: () => { calState.month++; if (calState.month > 11) { calState.month = 0; calState.year++; } render(); } }, '›');
+    const todayBtn = UI.el('button', { class: 'btn btn-ghost small', onClick: () => { calState.year = new Date().getFullYear(); calState.month = new Date().getMonth(); render(); } }, 'Hoy');
+    card.appendChild(
+      UI.el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px' }, [
+        UI.el('h2', { style: 'margin:0;font-size:1.05rem;color:var(--dark)' }, 'Cronograma del proyecto'),
+        UI.el('div', { class: 'nav-btns' }, [prevBtn, todayBtn, nextBtn])
+      ])
+    );
+
+    const first = new Date(calState.year, calState.month, 1);
+    const startDow = first.getDay();
+    const daysInMonth = new Date(calState.year, calState.month + 1, 0).getDate();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const cal = UI.el('div', { class: 'calendar', style: 'box-shadow:none;padding:0' });
+    cal.appendChild(UI.el('div', { style: 'text-align:center;font-weight:700;color:var(--text);margin-bottom:8px;text-transform:capitalize' }, monthNames[calState.month] + ' ' + calState.year));
+    const grid = UI.el('div', { class: 'calendar-grid' });
+    dows.forEach((d) => grid.appendChild(UI.el('div', { class: 'cal-dow' }, d)));
+    for (let i = 0; i < startDow; i++) grid.appendChild(UI.el('div', { class: 'cal-cell other' }));
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${calState.year}-${String(calState.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const cell = UI.el('div', { class: 'cal-cell' + (dateStr === todayStr ? ' today' : ''), style: 'min-height:60px' });
+      cell.appendChild(UI.el('div', { class: 'cal-date' }, String(d)));
+      tasks
+        .filter((t) => t.due_date === dateStr)
+        .forEach((t) => {
+          const overdue = dateStr < todayStr && t.status !== 'Completada';
+          cell.appendChild(
+            UI.el(
+              'div',
+              {
+                class: 'cal-item ' + (t.status === 'Completada' ? 'ok' : overdue ? 'danger' : ''),
+                title: t.name + ' · ' + (t.user_name || 'Sin asignar'),
+                onClick: (e) => { e.stopPropagation(); taskForm(t, allProjects, users, project.id); }
+              },
+              t.name
+            )
+          );
+        });
+      grid.appendChild(cell);
+    }
+    cal.appendChild(grid);
+    card.appendChild(cal);
     return card;
   }
 

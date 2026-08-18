@@ -1,5 +1,3 @@
-const CAL_BRANDS = ['EC Transportes', 'EC Tours', 'All Roads'];
-
 async function CalendarView(root) {
   const state = { year: new Date().getFullYear(), month: new Date().getMonth(), project: '', brand: '' };
 
@@ -30,7 +28,7 @@ async function CalendarView(root) {
       state.project
     );
     const brandF = UI.select(
-      [{ value: '', label: 'Todas las marcas' }].concat(CAL_BRANDS.map((b) => ({ value: b, label: b }))),
+      [{ value: '', label: 'Todas las marcas' }].concat(EC_BRANDS.map((b) => ({ value: b, label: b }))),
       state.brand
     );
     projectF.addEventListener('change', () => { state.project = projectF.value; render(); });
@@ -294,6 +292,7 @@ function showContentDates(c, rescheduleItem) {
     UI.el('div', { style: 'margin-bottom:10px' }, [UI.badge(c.brand, 'dark'), ' ', UI.badge(c.status, 'gold')]),
     calInfoRow('Fecha de publicación', UI.fmtDate(c.publish_date)),
     calInfoRow('Hora', c.publish_time || '—'),
+    calInfoRow('Responsable', c.user_name || 'Sin asignar'),
     calInfoRow('Formato', c.format || '—'),
     calInfoRow('Objetivo', c.objective || '—'),
     rescheduleRow(c.publish_date, (newDate) => { m.close(); rescheduleItem('content', c, newDate); })

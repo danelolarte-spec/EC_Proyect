@@ -29,8 +29,8 @@ async function UsersView(root) {
           UI.el('td', { 'data-label': 'Nombre' }, UI.el('strong', {}, u.name)),
           UI.el('td', { 'data-label': 'Correo' }, u.email),
           UI.el('td', { 'data-label': 'Rol' }, UI.badge(u.role, u.role === 'admin' ? 'dark' : '')),
-          UI.el('td', { 'data-label': 'Áreas' }, u.areas.map((a) => a.name).join(', ') || '—'),
-          UI.el('td', { 'data-label': 'Proyectos' }, u.projects.map((p) => p.name).join(', ') || '—'),
+          UI.el('td', { 'data-label': 'Áreas' }, chipList(u.areas.map((a) => a.name), 'gold')),
+          UI.el('td', { 'data-label': 'Proyectos' }, chipList(u.projects.map((p) => p.name), 'info')),
           UI.el('td', { 'data-label': 'Acciones' }, UI.el('div', { class: 'actions' }, [
             UI.el('button', { class: 'btn btn-ghost', onClick: () => userForm(u, areas, projects) }, 'Editar'),
             UI.el(
@@ -48,6 +48,19 @@ async function UsersView(root) {
     )
   ]);
   root.appendChild(UI.el('div', { class: 'tbl-wrap' }, table));
+}
+
+function chipList(names, variant, max = 4) {
+  if (names.length === 0) return '—';
+  const wrap = UI.el(
+    'div',
+    { style: 'display:flex;flex-wrap:wrap;gap:4px;max-width:280px' },
+    names.slice(0, max).map((n) => UI.badge(n, variant))
+  );
+  if (names.length > max) {
+    wrap.appendChild(UI.el('span', { style: 'font-size:0.72rem;color:var(--muted);align-self:center', title: names.slice(max).join(', ') }, '+' + (names.length - max) + ' más'));
+  }
+  return wrap;
 }
 
 function userForm(user, areas, projects) {

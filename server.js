@@ -41,6 +41,14 @@ function currentUserName(req) {
   return u ? u.name : null;
 }
 
+function isAdmin(req) {
+  return req.session.role === 'admin';
+}
+
+function isProjectMember(project, userId) {
+  return !!project && project.users.some((u) => u.id === userId);
+}
+
 // ---------- Auth ----------
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body || {};
@@ -125,17 +133,27 @@ app.delete('/api/areas/:id', requireAuth, (req, res) => {
 });
 
 // ---------- Projects ----------
+// Non-admin users only see projects they're personally assigned to.
 app.get('/api/projects', requireAuth, (req, res) => {
-  res.json(projectRepository.findAllWithDetails());
+  let projects = projectRepository.findAllWithDetails();
+  if (!isAdmin(req)) projects = projects.filter((p) => isProjectMember(p, req.session.userId));
+  res.json(projects);
 });
 
 app.get('/api/projects/:id', requireAuth, (req, res) => {
   const project = projectRepository.findById(req.params.id);
   if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  if (!isAdmin(req) && !isProjectMember(project, req.session.userId)) {
+    return res.status(404).json({ error: 'Proyecto no encontrado' });
+  }
   res.json(project);
 });
 
 app.get('/api/projects/:id/activity', requireAuth, (req, res) => {
+  if (!isAdmin(req)) {
+    const project = projectRepository.findById(req.params.id);
+    if (!isProjectMember(project, req.session.userId)) return res.status(404).json({ error: 'Proyecto no encontrado' });
+  }
   res.json(projectActivityRepository.findByProject(req.params.id));
 });
 
@@ -263,8 +281,20 @@ app.delete('/api/projects/:id', requireAuth, (req, res) => {
 });
 
 // ---------- Tasks ----------
+// Non-admins see only tasks assigned to them — except when browsing a
+// specific project they're a member of, where they see that project's
+// whole task board (needed for the project ficha and team collaboration).
 app.get('/api/tasks', requireAuth, (req, res) => {
-  const { project_id, user_id, from, to } = req.query;
+  const { project_id, from, to } = req.query;
+  let user_id = req.query.user_id;
+  if (!isAdmin(req)) {
+    if (project_id) {
+      const project = projectRepository.findById(project_id);
+      if (!isProjectMember(project, req.session.userId)) return res.status(404).json({ error: 'Proyecto no encontrado' });
+    } else {
+      user_id = req.session.userId;
+    }
+  }
   res.json(taskRepository.findAll({ project_id, user_id, from, to }));
 });
 
@@ -331,8 +361,8 @@ app.delete('/api/tasks/:id', requireAuth, (req, res) => {
 
 // ---------- Creative Content ----------
 app.get('/api/creative/content', requireAuth, (req, res) => {
-  const { brand, status } = req.query;
-  res.json(creativeContentRepository.findAll({ brand, status }));
+  const { brand, status, network } = req.query;
+  res.json(creativeContentRepository.findAll({ brand, status, network }));
 });
 
 app.post('/api/creative/content', requireAuth, (req, res) => {
@@ -347,7 +377,8 @@ app.post('/api/creative/content', requireAuth, (req, res) => {
     copy,
     design_notes,
     file_link,
-    status
+    status,
+    user_id
   } = req.body || {};
   if (!brand) return res.status(400).json({ error: 'Marca requerida' });
   const id = creativeContentRepository.create({
@@ -361,7 +392,8 @@ app.post('/api/creative/content', requireAuth, (req, res) => {
     copy,
     design_notes,
     file_link,
-    status
+    status,
+    user_id
   });
   res.json({ id });
 });
@@ -378,7 +410,8 @@ app.put('/api/creative/content/:id', requireAuth, (req, res) => {
     copy,
     design_notes,
     file_link,
-    status
+    status,
+    user_id
   } = req.body || {};
   creativeContentRepository.update(req.params.id, {
     brand,
@@ -391,7 +424,8 @@ app.put('/api/creative/content/:id', requireAuth, (req, res) => {
     copy,
     design_notes,
     file_link,
-    status
+    status,
+    user_id
   });
   res.json({ ok: true });
 });
@@ -458,18 +492,44 @@ app.delete('/api/requests/:id', requireAuth, (req, res) => {
 });
 
 // ---------- Dashboard ----------
+// Admins get the organization-wide executive view. Everyone else gets a
+// personal view scoped to their own assigned projects and tasks.
 app.get('/api/dashboard', requireAuth, (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
+
+  if (isAdmin(req)) {
+    return res.json({
+      scope: 'admin',
+      active: projectRepository.countActive(),
+      completed: projectRepository.countCompleted(),
+      total: projectRepository.countAll(),
+      overdueTasks: taskRepository.countOverdue(today),
+      pendingTasks: taskRepository.countPending(),
+      totalUsers: userRepository.countAll(),
+      totalAreas: areaRepository.countAll(),
+      contentThisMonth: creativeContentRepository.countThisMonth(today.slice(0, 7)),
+      projectsProgress: projectRepository.topProgress(10)
+    });
+  }
+
+  const uid = req.session.userId;
+  const myProjects = projectRepository.findAllWithDetails().filter((p) => isProjectMember(p, uid));
+  const myTasks = taskRepository.findAll({ user_id: uid });
   res.json({
-    active: projectRepository.countActive(),
-    completed: projectRepository.countCompleted(),
-    total: projectRepository.countAll(),
-    overdueTasks: taskRepository.countOverdue(today),
-    pendingTasks: taskRepository.countPending(),
+    scope: 'personal',
+    active: myProjects.filter((p) => p.status === 'En curso' || p.status === 'Planificado').length,
+    completed: myProjects.filter((p) => p.status === 'Completado').length,
+    total: myProjects.length,
+    overdueTasks: myTasks.filter((t) => t.due_date && t.due_date < today && t.status !== 'Completada').length,
+    pendingTasks: myTasks.filter((t) => t.status !== 'Completada').length,
     totalUsers: userRepository.countAll(),
     totalAreas: areaRepository.countAll(),
     contentThisMonth: creativeContentRepository.countThisMonth(today.slice(0, 7)),
-    projectsProgress: projectRepository.topProgress(10)
+    projectsProgress: myProjects
+      .slice()
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+      .slice(0, 10)
+      .map((p) => ({ id: p.id, code: p.code, name: p.name, status: p.status, total: p.tasks_total, done: p.tasks_done, progress: p.progress }))
   });
 });
 

@@ -98,11 +98,13 @@ button { font-family: inherit; }
 
 /* ===== Brand ===== */
 .brand { display: flex; align-items: center; gap: 14px; }
-.brand-mark { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-3) 100%); position: relative; box-shadow: var(--shadow), 0 0 0 1px rgba(221,193,111,0.15); }
-.brand-mark::before { content: ""; position: absolute; inset: 8px; border: 2px solid var(--gold); border-radius: 7px; }
-.brand-mark::after { content: ""; position: absolute; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; right: 6px; bottom: 6px; box-shadow: 0 0 8px var(--gold-glow); }
+.brand-mark {
+  width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, var(--brand) 0%, var(--brand-3) 100%);
+  position: relative; box-shadow: var(--shadow), 0 0 0 1px rgba(221,193,111,0.15);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.brand-mark svg { width: 66%; height: 66%; filter: drop-shadow(0 0 4px var(--gold-glow)); }
 .brand-mark.small { width: 34px; height: 34px; border-radius: 9px; }
-.brand-mark.small::before { inset: 6px; border-width: 1.5px; }
 .brand-text h1, .brand-text h2 { margin: 0; color: var(--text); font-size: 1.2rem; letter-spacing: 0.3px; }
 .brand-text p { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; }
 
@@ -293,6 +295,7 @@ table.data td .actions button { padding: 4px 10px; font-size: 0.78rem; }
 .cal-item.warn { background: var(--warn); color: #241a00; }
 .cal-item.ok { background: var(--success); color: #06281a; }
 .cal-item.danger { background: var(--danger); color: #fff; }
+.cal-item.info { background: var(--info); color: #fff; }
 .cal-item.milestone { background: var(--info); color: #fff; font-weight: 700; }
 
 /* ===== Calendar: strategic sidebar ===== */
@@ -372,13 +375,18 @@ table.data td .actions button { padding: 4px 10px; font-size: 0.78rem; }
 .projects-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
 .projects-list:last-child { margin-bottom: 0; }
 .project-row {
-  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--row-accent, var(--border)); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 16px 18px; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
   display: grid; gap: 16px 20px; align-items: center;
   grid-template-columns: minmax(200px, 1.6fr) minmax(220px, 1.6fr) minmax(150px, 1fr) auto;
   grid-template-areas: "main metrics progress actions";
 }
 .project-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--gold-2); }
+.project-row[data-status='En curso'] { --row-accent: var(--gold); }
+.project-row[data-status='Completado'] { --row-accent: var(--success); }
+.project-row[data-status='Pausado'] { --row-accent: var(--warn); }
+.project-row[data-status='Cancelado'] { --row-accent: var(--danger); }
+.project-row[data-status='Planificado'] { --row-accent: var(--info); }
 .project-row .pr-main { grid-area: main; min-width: 0; }
 .project-row .pr-code { color: var(--gold-2); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
 .project-row .pr-name { margin: 3px 0 6px; color: var(--text); font-size: 1rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }

@@ -45,6 +45,11 @@ function isAdmin(req) {
   return req.session.role === 'admin';
 }
 
+function requireAdmin(req, res, next) {
+  if (!isAdmin(req)) return res.status(403).json({ error: 'No autorizado' });
+  next();
+}
+
 function isProjectMember(project, userId) {
   return !!project && project.users.some((u) => u.id === userId);
 }
@@ -72,11 +77,14 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 // ---------- Users ----------
+// GET stays open to any authenticated user: other views (tasks, projects, creative)
+// resolve assignee names and populate "responsable" selects from this list. Only
+// the management actions (and the Usuarios page itself) are admin-only.
 app.get('/api/users', requireAuth, (req, res) => {
   res.json(userRepository.findAllWithDetails());
 });
 
-app.post('/api/users', requireAuth, (req, res) => {
+app.post('/api/users', requireAuth, requireAdmin, (req, res) => {
   const { name, email, password, role, areas = [], projects = [] } = req.body || {};
   if (!name || !email || !password) return res.status(400).json({ error: 'Faltan datos' });
   try {
@@ -90,7 +98,7 @@ app.post('/api/users', requireAuth, (req, res) => {
   }
 });
 
-app.put('/api/users/:id', requireAuth, (req, res) => {
+app.put('/api/users/:id', requireAuth, requireAdmin, (req, res) => {
   const { name, email, password, role, areas = [], projects = [] } = req.body || {};
   const id = req.params.id;
   try {
@@ -104,30 +112,31 @@ app.put('/api/users/:id', requireAuth, (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', requireAuth, (req, res) => {
+app.delete('/api/users/:id', requireAuth, requireAdmin, (req, res) => {
   userRepository.remove(req.params.id);
   res.json({ ok: true });
 });
 
 // ---------- Areas ----------
-app.get('/api/areas', requireAuth, (req, res) => {
+// Admin-only: area management is not visible or reachable for regular users.
+app.get('/api/areas', requireAuth, requireAdmin, (req, res) => {
   res.json(areaRepository.findAllWithUsers());
 });
 
-app.post('/api/areas', requireAuth, (req, res) => {
+app.post('/api/areas', requireAuth, requireAdmin, (req, res) => {
   const { name, description } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Nombre requerido' });
   const id = areaRepository.create({ name, description });
   res.json({ id });
 });
 
-app.put('/api/areas/:id', requireAuth, (req, res) => {
+app.put('/api/areas/:id', requireAuth, requireAdmin, (req, res) => {
   const { name, description } = req.body || {};
   areaRepository.update(req.params.id, { name, description });
   res.json({ ok: true });
 });
 
-app.delete('/api/areas/:id', requireAuth, (req, res) => {
+app.delete('/api/areas/:id', requireAuth, requireAdmin, (req, res) => {
   areaRepository.remove(req.params.id);
   res.json({ ok: true });
 });

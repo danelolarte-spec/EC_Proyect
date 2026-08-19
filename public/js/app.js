@@ -8,6 +8,11 @@
   document.getElementById('userEmail').textContent = me.email;
   document.getElementById('userAvatar').textContent = (me.name || '?').charAt(0).toUpperCase();
 
+  const isAdmin = me.role === 'admin';
+  if (!isAdmin) {
+    document.querySelectorAll('.nav a[data-route="users"], .nav a[data-route="areas"]').forEach((a) => a.remove());
+  }
+
   document.getElementById('themeToggleHost').appendChild(Theme.widget());
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
@@ -73,7 +78,9 @@
     // interleave its content with whatever navigation is current by the time it resolves.
     const container = document.createElement('div');
     try {
-      if (projectDetailMatch) {
+      if (!isAdmin && (route === 'users' || route === 'areas')) {
+        container.appendChild(UI.el('div', { class: 'empty' }, 'No tienes permisos para ver esta sección.'));
+      } else if (projectDetailMatch) {
         await ProjectDetailView(container, projectDetailMatch[1]);
       } else {
         const fn = routes[route] || DashboardView;
